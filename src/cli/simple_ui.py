@@ -104,13 +104,12 @@ class SimpleCLI:
         else:
             self.output_buffer.text = text
             
-        # Mantieni solo le ultime 100 righe per performance
+        # Mantieni solo le ultime 100 righe per performance# Keep only last 100 lines
         lines = self.output_buffer.text.split('\n')
         if len(lines) > 100:
             self.output_buffer.text = '\n'.join(lines[-100:])
             
-        # Scroll automatico alla fine
-        self.output_buffer.cursor_position = len(self.output_buffer.text)
+        # Rimuovo scroll automatico - l'utente controlla manualmente lo scroll
         
     def run(self):
         """Run the application"""
