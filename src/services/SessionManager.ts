@@ -2,6 +2,7 @@ import { promises as fs } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { Session, Message, AppConfig } from '../types/index.js';
+import { llmService } from './LLMService.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -188,6 +189,63 @@ export class SessionManager {
     } catch (error) {
       console.error('Error saving config:', error);
     }
+  }
+
+  // Session Selection and Context Preparation
+  async getSessionsForSelection(): Promise<Array<{id: string, name: string, lastActivity: Date, messageCount: number}>> {
+    const sessions = await this.listSessions();
+    return sessions.map(session => ({
+      id: session.id,
+      name: session.name,
+      lastActivity: session.metadata!.lastActivity,
+      messageCount: session.messages.length
+    }));
+  }
+
+  async prepareSessionContext(sessionId: string): Promise<string | null> {
+    const session = await this.loadSession(sessionId);
+    if (!session || session.messages.length === 0) {
+      return null;
+    }
+
+    // Costruisci il testo completo della chat precedente
+    const chatHistory = session.messages
+      .map(msg => `${msg.role === 'user' ? 'Utente' : 'Assistente'}: ${msg.content}`)
+      .join('\n\n');
+
+    try {
+      // Usa l'LLM per riassumere la chat precedente
+      const summaryPrompt = `Riassumi questa conversazione precedente in modo conciso ma completo, mantenendo i punti chiave e il contesto importante per continuare la discussione:
+
+${chatHistory}
+
+Fornisci un riassunto che possa essere usato come contesto per continuare questa conversazione.`;
+
+      const summary = await llmService.summarizeContext(chatHistory);
+      return summary;
+    } catch (error) {
+      console.error('Errore durante la creazione del riassunto:', error);
+      // Fallback: restituisci gli ultimi messaggi se il riassunto fallisce
+      const lastMessages = session.messages.slice(-5)
+        .map(msg => `${msg.role === 'user' ? 'Utente' : 'Assistente'}: ${msg.content}`)
+        .join('\n\n');
+      return `Contesto degli ultimi messaggi:\n\n${lastMessages}`;
+    }
+  }
+
+  async resumeSessionWithContext(sessionId: string): Promise<{session: Session, context: string} | null> {
+    const session = await this.loadSession(sessionId);
+    if (!session) {
+      return null;
+    }
+
+    const context = await this.prepareSessionContext(sessionId);
+    this.currentSession = session;
+    
+    return {
+      session,
+      context: context || 'Sessione ripresa senza contesto precedente.'
+    };
   }
 
   // Utility Methods

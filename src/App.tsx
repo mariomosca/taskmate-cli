@@ -1,59 +1,129 @@
 import React, { useState, useEffect } from 'react';
 import { Box, useApp } from 'ink';
-import { SplashScreen } from './components/SplashScreen';
-import { ContentArea } from './components/ContentArea';
-import { InputArea } from './components/InputArea';
-import Transform from './components/Transform';
-import { Message, Session } from './types';
+import { SplashScreen } from './components/SplashScreen.js';
+import { InputArea } from './components/InputArea.js';
+import { ContentArea } from './components/ContentArea.js';
+import { SessionSelector } from './components/SessionSelector.js';
 import { SessionManager } from './services/SessionManager.js';
+import { llmService } from './services/LLMService.js';
+import { Message } from './types/index.js';
 
 export const App: React.FC = () => {
   const { exit } = useApp();
-  const [showSplash, setShowSplash] = useState(true);
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState('');
-  const [activeTransforms, setActiveTransforms] = useState<{
-    type: 'projects' | 'tasks' | 'ai' | 'search' | 'session';
-    count?: number;
-    message?: string;
-  }[]>([]);
-  const [currentSession, setCurrentSession] = useState<Session | null>(null);
+  const [showSplash, setShowSplash] = useState(true);
+  const [splashCompleted, setSplashCompleted] = useState(false);
   const [sessionManager] = useState(() => new SessionManager());
+  
+  // Session resume states
+  const [showSessionSelector, setShowSessionSelector] = useState(false);
+  const [sessions, setSessions] = useState<any[]>([]);
+  const [selectedSessionIndex, setSelectedSessionIndex] = useState(0);
+  const [sessionContext, setSessionContext] = useState<string>('');
 
-  // Initialize session on startup
+  // Check CLI arguments for session resume
   useEffect(() => {
-    const initializeSession = async () => {
-      try {
-        // Try to resume last session
-        const lastSession = await sessionManager.resumeLastSession();
-        if (lastSession) {
-          setCurrentSession(lastSession);
-          setMessages(lastSession.messages);
-        } else {
-          // Create new session if none exists
-          const newSession = await sessionManager.createSession();
-          setCurrentSession(newSession);
-        }
-      } catch (error) {
-        console.error('Error initializing session:', error);
-        // Fallback: create new session
-        const newSession = await sessionManager.createSession();
-        setCurrentSession(newSession);
+    const args = process.argv.slice(2);
+    const resumeIndex = args.indexOf('--resume');
+    
+    if (resumeIndex !== -1) {
+      const sessionId = args[resumeIndex + 1];
+      
+      if (sessionId && !sessionId.startsWith('--')) {
+        // Resume specific session directly - hide splash and load session
+        setShowSplash(false);
+        handleResumeSpecificSession(sessionId);
+      } else {
+        // Show session selector after splash completes
+        setShowSessionSelector(true);
       }
-    };
-
-    if (!showSplash) {
-      initializeSession();
+    } else {
+      // Normal startup - create new session after splash completes
+      // Don't hide splash, just wait for it to complete
     }
-  }, [showSplash, sessionManager]);
+  }, []);
 
-  const handleSplashComplete = () => {
-    setShowSplash(false);
+  const handleResumeSpecificSession = async (sessionId: string) => {
+    try {
+      setIsLoading(true);
+      setLoadingMessage('Caricamento sessione...');
+      
+      const result = await sessionManager.resumeSessionWithContext(sessionId);
+      if (result) {
+        setSessionContext(result.context);
+        setMessages(result.session.messages || []);
+        if (result.context) {
+          addSystemMessage(`📝 Sessione ripresa con contesto: ${result.context.substring(0, 100)}...`);
+        }
+      } else {
+        addSystemMessage(`❌ Sessione ${sessionId} non trovata`);
+      }
+    } catch (error) {
+      addSystemMessage(`❌ Errore nel caricamento della sessione: ${error}`);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleUserInput = async (input: string) => {
-    if (!currentSession) return;
+  const loadSessionsForSelection = async () => {
+    try {
+      const sessionList = await sessionManager.getSessionsForSelection();
+      setSessions(sessionList);
+      setShowSessionSelector(true);
+    } catch (error) {
+      addSystemMessage(`❌ Errore nel caricamento delle sessioni: ${error}`);
+    }
+  };
+
+  const handleSessionSelected = async (sessionId: string) => {
+    setShowSessionSelector(false);
+    await handleResumeSpecificSession(sessionId);
+  };
+
+  const handleSessionSelectorCancel = () => {
+    setShowSessionSelector(false);
+    // Create new session instead
+    sessionManager.createSession(
+      `Sessione ${new Date().toLocaleDateString()}`,
+      'claude'
+    );
+  };
+
+  // Handle splash completion
+  useEffect(() => {
+    if (splashCompleted && !showSessionSelector && messages.length === 0) {
+      // Create new session when splash completes in normal mode
+      const createNewSession = async () => {
+        await sessionManager.createSession(
+          `Sessione ${new Date().toLocaleDateString()}`,
+          'claude'
+        );
+      };
+      createNewSession();
+    }
+  }, [splashCompleted, showSessionSelector, messages.length, sessionManager]);
+
+  // Handle session selector after splash completion
+  useEffect(() => {
+    if (splashCompleted && showSessionSelector) {
+      loadSessionsForSelection();
+    }
+  }, [splashCompleted, showSessionSelector]);
+
+  const addSystemMessage = (content: string) => {
+    const message: Message = {
+      id: Date.now().toString(),
+      role: 'system',
+      content,
+      timestamp: new Date()
+    };
+    setMessages(prev => [...prev, message]);
+  };
+
+  const handleSubmit = async (input: string) => {
+    if (!input.trim()) return;
 
     // Add user message
     const userMessage: Message = {
@@ -62,193 +132,108 @@ export const App: React.FC = () => {
       content: input,
       timestamp: new Date()
     };
-    
     setMessages(prev => [...prev, userMessage]);
-    await sessionManager.addMessage(userMessage);
-    
-    setIsLoading(true);
-    setLoadingMessage('Elaborazione con AI...');
 
-    // Mock AI response
-    setTimeout(async () => {
+    // Show loading
+    setIsLoading(true);
+    setLoadingMessage('Elaborazione risposta...');
+
+    try {
+      // Send to LLM
+      const response = await llmService.sendMessage(input, sessionContext);
+      
+      // Add AI response
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: `Hai scritto: "${input}". Questa è una risposta mock dell'AI. In futuro qui ci sarà l'integrazione con Claude/Gemini.`,
+        content: response.content,
         timestamp: new Date(),
-        metadata: { 
-          llmProvider: 'claude',
-          processingTime: 1500
+        metadata: {
+          llmProvider: response.provider,
+          processingTime: response.processingTime
         }
       };
-      
       setMessages(prev => [...prev, aiMessage]);
+
+      // Save to session
+      await sessionManager.addMessage(userMessage);
       await sessionManager.addMessage(aiMessage);
+
+    } catch (error) {
+      const errorMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: 'system',
+        content: `❌ Errore: ${error instanceof Error ? error.message : 'Errore sconosciuto'}`,
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, errorMessage]);
+    } finally {
       setIsLoading(false);
-      setLoadingMessage('');
-    }, 2000);
+    }
   };
 
   const handleSlashCommand = async (command: string, args: string[]) => {
-    // Add command message
-    const commandMessage: Message = {
-      id: Date.now().toString(),
-      role: 'user',
-      content: `/${command} ${args.join(' ')}`,
-      timestamp: new Date()
-    };
-    
-    setMessages(prev => [...prev, commandMessage]);
-
-    // Handle specific commands
     switch (command) {
       case 'help':
-        const helpMessage: Message = {
-          id: (Date.now() + 1).toString(),
-          role: 'system',
-          content: 'Comandi disponibili:\n/help - Mostra questo aiuto\n/clear - Pulisci la chat\n/exit - Esci dall\'applicazione\n/tasks - Mostra task (mock)\n/projects - Mostra progetti (mock)\n/sessions - Lista sessioni\n/new - Nuova sessione\n/search <query> - Cerca nei messaggi',
-          timestamp: new Date()
-        };
-        setMessages(prev => [...prev, helpMessage]);
-        await sessionManager.addMessage(helpMessage);
+        addSystemMessage('📋 Comandi disponibili:\n/help - Mostra aiuto\n/clear - Pulisci chat\n/exit - Esci\n/sessions - Lista sessioni\n/new - Nuova sessione');
         break;
-        
       case 'clear':
         setMessages([]);
         break;
-        
       case 'exit':
         exit();
         break;
-        
-      case 'tasks':
-        // Show transform indicator
-        setActiveTransforms([{ type: 'tasks', count: 15, message: 'Caricamento task' }]);
-        
-        setTimeout(async () => {
-          const tasksMessage: Message = {
-            id: (Date.now() + 1).toString(),
-            role: 'system',
-            content: 'Task Mock:\n• Completare il CLI Todoist AI\n• Implementare integrazione API\n• Testare interfaccia utente',
-            timestamp: new Date(),
-            metadata: { llmProvider: 'todoist-api' }
-          };
-          setMessages(prev => [...prev, tasksMessage]);
-          await sessionManager.addMessage(tasksMessage);
-          setActiveTransforms([]);
-        }, 1500);
-        break;
-        
-      case 'projects':
-        const projectsMessage: Message = {
-          id: (Date.now() + 1).toString(),
-          role: 'system',
-          content: 'Progetti mock:\n• Progetto A (5 task)\n• Progetto B (3 task)\n• Progetto C (8 task)',
-          timestamp: new Date()
-        };
-        setMessages(prev => [...prev, projectsMessage]);
-        await sessionManager.addMessage(projectsMessage);
-        break;
-        
       case 'sessions':
-        const sessions = await sessionManager.listSessions();
-        const sessionsMessage: Message = {
-          id: (Date.now() + 1).toString(),
-          role: 'system',
-          content: `Sessioni disponibili:\n${sessions.map(s => `• ${s.name} (${s.messageCount} messaggi) - ${s.lastActivity.toLocaleDateString()}`).join('\n')}`,
-          timestamp: new Date()
-        };
-        setMessages(prev => [...prev, sessionsMessage]);
-        await sessionManager.addMessage(sessionsMessage);
+        await loadSessionsForSelection();
         break;
-        
       case 'new':
-        const newSession = await sessionManager.createSession();
-        setCurrentSession(newSession);
         setMessages([]);
-        const newSessionMessage: Message = {
-          id: Date.now().toString(),
-          role: 'system',
-          content: `Nuova sessione creata: ${newSession.name}`,
-          timestamp: new Date()
-        };
-        setMessages([newSessionMessage]);
-        await sessionManager.addMessage(newSessionMessage);
+        await sessionManager.createSession(
+          `Sessione ${new Date().toLocaleDateString()}`,
+          'claude'
+        );
+        addSystemMessage('✅ Nuova sessione creata');
         break;
-        
-      case 'search':
-        const query = args.join(' ');
-        if (query.trim()) {
-          const searchResults = await sessionManager.searchMessages(query);
-          const searchMessage: Message = {
-            id: (Date.now() + 1).toString(),
-            role: 'system',
-            content: searchResults.length > 0 
-              ? `Risultati ricerca per "${query}":\n${searchResults.map(r => `• [${r.metadata?.sessionName || 'Sessione'}] ${r.content.substring(0, 100)}...`).join('\n')}`
-              : `Nessun risultato trovato per "${query}"`,
-            timestamp: new Date()
-          };
-          setMessages(prev => [...prev, searchMessage]);
-          await sessionManager.addMessage(searchMessage);
-        } else {
-          const searchHelpMessage: Message = {
-            id: (Date.now() + 1).toString(),
-            role: 'system',
-            content: 'Uso: /search <query> - Cerca nei messaggi delle sessioni',
-            timestamp: new Date()
-          };
-          setMessages(prev => [...prev, searchHelpMessage]);
-          await sessionManager.addMessage(searchHelpMessage);
-        }
-        break;
-        
       default:
-        const unknownMessage: Message = {
-          id: (Date.now() + 1).toString(),
-          role: 'system',
-          content: `Comando sconosciuto: /${command}. Usa /help per vedere i comandi disponibili.`,
-          timestamp: new Date()
-        };
-        setMessages(prev => [...prev, unknownMessage]);
-        await sessionManager.addMessage(unknownMessage);
+        addSystemMessage(`❌ Comando sconosciuto: /${command}`);
     }
   };
 
   return (
     <Box flexDirection="column" height="100%">
-      {showSplash && (
-        <SplashScreen 
-          onComplete={handleSplashComplete} 
-          keepVisible={true}
-        />
-      )}
-      
-      {!showSplash && (
-        <>
-          <ContentArea 
-            messages={messages}
-            isLoading={isLoading}
-            loadingMessage={loadingMessage}
+      {/* Content Area - shows splash with session selector or messages */}
+      <Box flexGrow={1}>
+        <Box flexDirection="column">
+          <SplashScreen 
+            keepVisible={true}
+            onComplete={() => setSplashCompleted(true)}
           />
-          
-          {/* Transform indicators */}
-          {activeTransforms.map((transform, index) => (
-            <Transform
-              key={index}
-              type={transform.type}
-              count={transform.count}
-              message={transform.message}
-              isActive={true}
+          {showSessionSelector && splashCompleted && (
+            <SessionSelector
+              sessions={sessions}
+              selectedIndex={selectedSessionIndex}
+              onIndexChange={setSelectedSessionIndex}
+              onSessionSelected={handleSessionSelected}
+              onCancel={handleSessionSelectorCancel}
+              loading={false}
             />
-          ))}
-          
-          <InputArea 
-            onSubmit={handleUserInput}
-            onSlashCommand={handleSlashCommand}
-            disabled={isLoading}
-          />
-        </>
-      )}
+          )}
+          {!showSessionSelector && (
+            <ContentArea 
+              messages={messages}
+              isLoading={isLoading}
+              loadingMessage={loadingMessage}
+            />
+          )}
+        </Box>
+      </Box>
+
+      {/* Input Area - always at bottom */}
+      <InputArea
+        onSubmit={handleSubmit}
+        onSlashCommand={handleSlashCommand}
+        disabled={isLoading || !splashCompleted || showSessionSelector}
+      />
     </Box>
   );
 };

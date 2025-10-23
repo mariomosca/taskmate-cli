@@ -18,6 +18,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
 }) => {
   const [currentStep, setCurrentStep] = useState(0);
   const [isCompleted, setIsCompleted] = useState(false);
+  const [showCompletionMessage, setShowCompletionMessage] = useState(false);
 
   const steps = [
     'Inizializzazione Todoist AI CLI...',
@@ -34,11 +35,18 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
         } else {
           clearInterval(stepInterval);
           setIsCompleted(true);
-          if (!keepVisible) {
-            setTimeout(() => onComplete?.(), 500);
-          } else {
-            onComplete?.();
-          }
+          setShowCompletionMessage(true);
+          
+          // Hide completion message after 1.5 seconds
+          setTimeout(() => {
+            setShowCompletionMessage(false);
+            if (!keepVisible) {
+              setTimeout(() => onComplete?.(), 200);
+            } else {
+              onComplete?.();
+            }
+          }, 1500);
+          
           return prev;
         }
       });
@@ -54,11 +62,10 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
     <Box 
       flexDirection="column" 
       alignItems="center" 
-      justifyContent="center"
-      height={keepVisible ? undefined : 10}
-      paddingY={2}
+      justifyContent="flex-start"
+      width="100%"
     >
-      <Box marginBottom={2}>
+      <Box>
         <BigText 
           text="TODOIST AI" 
           font="block"
@@ -66,20 +73,20 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
         />
       </Box>
       
-      <Box marginBottom={1}>
+      <Box>
         <Text>
           {subtitleGradient('🤖 Powered by Claude & Gemini 🤖')}
         </Text>
       </Box>
       
-      <Box marginBottom={2}>
+      <Box marginBottom={1}>
         <Text color="gray">
           v0.1.0 - Versione Minimal
         </Text>
       </Box>
 
       {!isCompleted && (
-        <Box flexDirection="row" alignItems="center" marginBottom={1}>
+        <Box flexDirection="row" alignItems="center" marginTop={1}>
           <Text color="cyan">
             <Spinner type="dots" />
           </Text>
@@ -89,8 +96,8 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
         </Box>
       )}
 
-      {isCompleted && keepVisible && (
-        <Box flexDirection="row" alignItems="center">
+      {isCompleted && showCompletionMessage && (
+        <Box flexDirection="row" alignItems="center" marginTop={1}>
           <Text color="green">{figures.tick} </Text>
           <Text color="green">Sistema pronto per l'uso!</Text>
         </Box>

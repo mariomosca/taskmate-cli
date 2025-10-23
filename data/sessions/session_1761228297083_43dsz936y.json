@@ -1,0 +1,13 @@
+{
+  "id": "session_1761228297083_43dsz936y",
+  "name": "Sessione 10/23/2025",
+  "createdAt": "2025-10-23T14:04:57.083Z",
+  "updatedAt": "2025-10-23T14:04:57.083Z",
+  "messages": [],
+  "llmProvider": "claude",
+  "metadata": {
+    "totalMessages": 0,
+    "totalTokens": 0,
+    "lastActivity": "2025-10-23T14:04:57.083Z"
+  }
+}
