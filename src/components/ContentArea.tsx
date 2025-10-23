@@ -24,7 +24,7 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
     const color = isUser ? 'cyan' : 'green';
     
     return (
-      <Box key={message.id} flexDirection="column" marginBottom={0.5}>
+      <Box key={message.id} flexDirection="column" marginBottom={1}>
         {isUser && (
           <Box flexDirection="row" alignItems="center" marginBottom={0}>
             <Text color={color}>{icon} </Text>

@@ -137,7 +137,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
       {/* Messages */}
       <Box flexDirection="column" flexGrow={1} marginBottom={1}>
         {state.messages.map((message) => (
-          <Box key={message.id} marginBottom={0.5}>
+          <Box key={message.id} marginBottom={1}>
             {message.role === 'user' && (
               <Text color="green" bold>
                 👤 Tu:

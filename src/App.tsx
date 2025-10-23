@@ -27,7 +27,7 @@ export const App: React.FC = () => {
     baseUrl: 'https://api.todoist.com/rest/v2'
   }));
 
-  const addSystemMessage = (content: string) => {
+  const addSystemMessage = async (content: string) => {
     const message: Message = {
       id: Date.now().toString(),
       role: 'system',
@@ -35,6 +35,13 @@ export const App: React.FC = () => {
       timestamp: new Date()
     };
     setMessages(prev => [...prev, message]);
+    
+    // Also save to current session
+    try {
+      await sessionManager.addMessage(message);
+    } catch (error) {
+      console.error('Errore nel salvare il messaggio di sistema nella sessione:', error);
+    }
   };
 
   const [commandHandler] = useState(() => {
@@ -43,8 +50,8 @@ export const App: React.FC = () => {
       sessionManager,
       databaseService,
       llmService,
-      onOutput: (message: string) => addSystemMessage(message),
-      onError: (error: string) => addSystemMessage(`❌ ${error}`),
+      onOutput: (message: string) => { addSystemMessage(message); },
+      onError: (error: string) => { addSystemMessage(`❌ ${error}`); },
       onProgressUpdate: (steps: LoadingStep[]) => setLoadingSteps(steps)
     };
     return new CommandHandler(context);
@@ -99,13 +106,13 @@ export const App: React.FC = () => {
         setSessionContext(result.context);
         setMessages(result.session.messages || []);
         if (result.context) {
-          addSystemMessage(`📝 Sessione ripresa con contesto: ${result.context.substring(0, 100)}...`);
+          await addSystemMessage(`📝 Sessione ripresa con contesto: ${result.context.substring(0, 100)}...`);
         }
       } else {
-        addSystemMessage(`❌ Sessione ${sessionId} non trovata`);
+        await addSystemMessage(`❌ Sessione ${sessionId} non trovata`);
       }
     } catch (error) {
-      addSystemMessage(`❌ Errore nel caricamento della sessione: ${error}`);
+      await addSystemMessage(`❌ Errore nel caricamento della sessione: ${error}`);
     } finally {
       setIsLoading(false);
     }
@@ -120,7 +127,7 @@ export const App: React.FC = () => {
       setHasMore(result.hasMore);
       setShowSessionSelector(true);
     } catch (error) {
-      addSystemMessage(`❌ Errore nel caricamento delle sessioni: ${error}`);
+      await addSystemMessage(`❌ Errore nel caricamento delle sessioni: ${error}`);
     }
   };
 
@@ -282,10 +289,10 @@ export const App: React.FC = () => {
       const result = await commandHandler.executeCommand(fullCommand);
       
       if (!result.success) {
-        addSystemMessage(result.message);
+        await addSystemMessage(result.message);
       } else if (result.message) {
         // Show success message if provided
-        addSystemMessage(result.message);
+        await addSystemMessage(result.message);
       }
     } finally {
       // Clear loading state
