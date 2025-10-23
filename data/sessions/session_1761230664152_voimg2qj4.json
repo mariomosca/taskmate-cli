@@ -1,0 +1,30 @@
+{
+  "id": "session_1761230664152_voimg2qj4",
+  "name": "Sessione 10/23/2025",
+  "createdAt": "2025-10-23T14:44:24.152Z",
+  "updatedAt": "2025-10-23T14:44:26.887Z",
+  "messages": [
+    {
+      "id": "1761230666059",
+      "role": "user",
+      "content": "ciao",
+      "timestamp": "2025-10-23T14:44:26.059Z"
+    },
+    {
+      "id": "1761230666883",
+      "role": "assistant",
+      "content": "Ciao! Come stai?",
+      "timestamp": "2025-10-23T14:44:26.882Z",
+      "metadata": {
+        "llmProvider": "claude",
+        "processingTime": 0
+      }
+    }
+  ],
+  "llmProvider": "claude",
+  "metadata": {
+    "totalMessages": 2,
+    "totalTokens": 0,
+    "lastActivity": "2025-10-23T14:44:26.887Z"
+  }
+}

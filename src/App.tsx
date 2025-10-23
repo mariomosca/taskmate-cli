@@ -4,6 +4,7 @@ import { SplashScreen } from './components/SplashScreen.js';
 import { InputArea } from './components/InputArea.js';
 import { ContentArea } from './components/ContentArea.js';
 import { SessionSelector } from './components/SessionSelector.js';
+import { ContextIndicator } from './components/ContextIndicator.js';
 import { SessionManager } from './services/SessionManager.js';
 import { llmService } from './services/LLMService.js';
 import { Message } from './types/index.js';
@@ -28,6 +29,10 @@ export const App: React.FC = () => {
   const [totalSessions, setTotalSessions] = useState(0);
   const [hasMore, setHasMore] = useState(false);
   const [prioritySessionId, setPrioritySessionId] = useState<string | undefined>();
+  
+  // Context states
+  const [contextInfo, setContextInfo] = useState<string | null>(null);
+  const [contextDescription, setContextDescription] = useState<string | null>(null);
 
   // Check CLI arguments for session resume
   useEffect(() => {
@@ -117,6 +122,18 @@ export const App: React.FC = () => {
     );
   };
 
+  // Update context information
+  const updateContextInfo = async () => {
+    try {
+      const info = await sessionManager.getContextInfo();
+      const description = await sessionManager.getContextDescription();
+      setContextInfo(info);
+      setContextDescription(description);
+    } catch (error) {
+      console.error('Error updating context info:', error);
+    }
+  };
+
   // Handle splash completion
   useEffect(() => {
     if (splashCompleted && !showSessionSelector && messages.length === 0) {
@@ -137,6 +154,13 @@ export const App: React.FC = () => {
       loadSessionsForSelection();
     }
   }, [splashCompleted, showSessionSelector]);
+
+  // Update context info when messages change or when splash/session selector state changes
+  useEffect(() => {
+    if (!showSplash && !showSessionSelector) {
+      updateContextInfo();
+    }
+  }, [messages.length, showSplash, showSessionSelector]);
 
   const addSystemMessage = (content: string) => {
     const message: Message = {
@@ -195,6 +219,9 @@ export const App: React.FC = () => {
       // Save to session
       await sessionManager.addMessage(userMessage);
       await sessionManager.addMessage(aiMessage);
+      
+      // Update context info
+      updateContextInfo();
 
     } catch (error) {
       const errorMessage: Message = {
@@ -269,6 +296,15 @@ export const App: React.FC = () => {
           )}
         </Box>
       </Box>
+
+      {/* Context Indicator - above input */}
+      {!showSessionSelector && (
+        <ContextIndicator
+          contextInfo={contextInfo}
+          contextDescription={contextDescription}
+          position="above-input"
+        />
+      )}
 
       {/* Input Area - always at bottom */}
       <InputArea

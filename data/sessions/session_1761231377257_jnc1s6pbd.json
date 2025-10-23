@@ -1,0 +1,30 @@
+{
+  "id": "session_1761231377257_jnc1s6pbd",
+  "name": "Sessione 10/23/2025",
+  "createdAt": "2025-10-23T14:56:17.257Z",
+  "updatedAt": "2025-10-23T14:56:28.424Z",
+  "messages": [
+    {
+      "id": "1761231387284",
+      "role": "user",
+      "content": "ciao",
+      "timestamp": "2025-10-23T14:56:27.284Z"
+    },
+    {
+      "id": "1761231388420",
+      "role": "assistant",
+      "content": "Ciao! Come stai? Posso aiutarti con qualcosa?",
+      "timestamp": "2025-10-23T14:56:28.419Z",
+      "metadata": {
+        "llmProvider": "claude",
+        "processingTime": 0
+      }
+    }
+  ],
+  "llmProvider": "claude",
+  "metadata": {
+    "totalMessages": 2,
+    "totalTokens": 0,
+    "lastActivity": "2025-10-23T14:56:28.424Z"
+  }
+}

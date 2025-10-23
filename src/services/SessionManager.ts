@@ -3,6 +3,7 @@ import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { Session, Message, AppConfig } from '../types/index.js';
 import { llmService } from './LLMService.js';
+import { ContextManager } from './ContextManager';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -11,11 +12,13 @@ export class SessionManager {
   private sessionsDir: string;
   private configPath: string;
   private currentSession: Session | null = null;
+  private contextManager: ContextManager;
 
   constructor(dataDir?: string) {
     const baseDir = dataDir || join(__dirname, '../../data');
     this.sessionsDir = join(baseDir, 'sessions');
     this.configPath = join(baseDir, 'config.json');
+    this.contextManager = new ContextManager(llmService);
     this.ensureDirectories();
   }
 
@@ -245,24 +248,25 @@ export class SessionManager {
       return null;
     }
 
-    // Costruisci il testo completo della chat precedente
-    const chatHistory = session.messages
-      .map(msg => `${msg.role === 'user' ? 'Utente' : 'Assistente'}: ${msg.content}`)
-      .join('\n\n');
-
     try {
-      // Usa l'LLM per riassumere la chat precedente
-      const summaryPrompt = `Riassumi questa conversazione precedente in modo conciso ma completo, mantenendo i punti chiave e il contesto importante per continuare la discussione:
+      // Usa il nuovo ContextManager per ottimizzare il contesto
+      const result = await this.contextManager.prepareOptimizedContext(session.messages);
+      
+      // Aggiorna la sessione con i messaggi ottimizzati se è stata fatta una summarizzazione
+      if (result.contextInfo.wasSummarized) {
+        session.messages = result.optimizedMessages;
+        await this.saveSession(session);
+      }
 
-${chatHistory}
+      // Costruisci il testo del contesto per il riassunto
+      const chatHistory = result.optimizedMessages
+        .map(msg => `${msg.role === 'user' ? 'Utente' : 'Assistente'}: ${msg.content}`)
+        .join('\n\n');
 
-Fornisci un riassunto che possa essere usato come contesto per continuare questa conversazione.`;
-
-      const summary = await llmService.summarizeContext(chatHistory);
-      return summary;
+      return chatHistory;
     } catch (error) {
-      console.error('Errore durante la creazione del riassunto:', error);
-      // Fallback: restituisci gli ultimi messaggi se il riassunto fallisce
+      console.error('Errore durante la preparazione del contesto:', error);
+      // Fallback: restituisci gli ultimi messaggi
       const lastMessages = session.messages.slice(-5)
         .map(msg => `${msg.role === 'user' ? 'Utente' : 'Assistente'}: ${msg.content}`)
         .join('\n\n');
@@ -292,6 +296,20 @@ Fornisci un riassunto che possa essere usato come contesto per continuare questa
 
   getCurrentSession(): Session | null {
     return this.currentSession;
+  }
+
+  getContextInfo(): string | null {
+    if (!this.currentSession) {
+      return null;
+    }
+    return this.contextManager.formatContextInfo(this.currentSession.messages);
+  }
+
+  getContextDescription(): string | null {
+    if (!this.currentSession) {
+      return null;
+    }
+    return this.contextManager.getContextDescription(this.currentSession.messages);
   }
 
   async getLastSession(): Promise<Session | null> {

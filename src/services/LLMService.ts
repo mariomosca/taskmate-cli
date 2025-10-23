@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import axios from 'axios';
+import { PromptProcessor, SUMMARIZE_CONTEXT } from '../prompts/templates';
 
 export interface LLMMessage {
   role: 'user' | 'assistant' | 'system';
@@ -43,16 +44,13 @@ export class LLMService {
   }
 
   async summarizeContext(chatHistory: string): Promise<string> {
+    // Usa il template centralizzato per il riassunto
+    const prompt = PromptProcessor.process(SUMMARIZE_CONTEXT, { chatHistory });
+    
     const messages: LLMMessage[] = [
       {
-        role: 'system',
-        content: `Sei un assistente AI che deve riassumere una conversazione precedente per fornire contesto a una nuova sessione. 
-        Riassumi i punti chiave, le decisioni prese, e lo stato attuale del progetto/discussione in modo conciso ma completo.
-        Mantieni le informazioni tecniche importanti e il contesto del progetto.`
-      },
-      {
         role: 'user',
-        content: `Riassumi questa conversazione precedente per fornire contesto:\n\n${chatHistory}`
+        content: prompt
       }
     ];
 
