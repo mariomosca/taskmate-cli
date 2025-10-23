@@ -266,6 +266,16 @@ class User(BaseModel):
     is_premium: bool = Field(default=False, description="Whether user has premium")
     lang: str = Field(default="en", description="User language")
     timezone: str = Field(default="UTC", description="User timezone")
+    
+    @validator('name', pre=True, always=True)
+    def set_name_from_full_name(cls, v, values):
+        """Map full_name to name if name is not provided."""
+        if v is None and 'full_name' in values:
+            return values['full_name']
+        return v
+    
+    class Config:
+        extra = "ignore"  # Ignore extra fields from API response
 
 
 class TodoistError(BaseModel):

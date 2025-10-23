@@ -94,7 +94,7 @@ def show_splash_screen(console: Console, config: AppConfig, delay: float = 2.0) 
     # Create main panel
     main_content = Text()
     main_content.append("\n")
-    main_content.extend(logo)
+    main_content.append_text(logo)
     main_content.append("\n\n")
     
     # Add welcome message
@@ -102,7 +102,7 @@ def show_splash_screen(console: Console, config: AppConfig, delay: float = 2.0) 
     welcome_msg.append("Welcome to the future of task management! 🎉\n", style="bold green")
     welcome_msg.append("Combine the power of AI with Todoist for smarter productivity.\n", style="dim")
     
-    main_content.extend(Align.center(welcome_msg))
+    main_content.append_text(welcome_msg)
     main_content.append("\n")
     
     # Create columns for features and info

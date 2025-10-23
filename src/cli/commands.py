@@ -13,6 +13,11 @@ from rich.console import Console
 from ..config.settings import AppConfig
 from .ui import UIManager
 from ..session.service import SessionService
+from ..llm.manager import LLMManager, create_multi_provider_manager
+from ..llm.base import LLMProvider, MessageRole
+from ..todoist.service import TodoistService
+from ..todoist.models import Priority
+from ..markdown.context import ContextManager
 
 
 class CommandProcessor:
@@ -30,11 +35,22 @@ class CommandProcessor:
         self.current_session_id: Optional[str] = None
         self.context_data: Dict[str, Any] = {}
         
+        # Initialize LLM Manager
+        self.llm_manager = self._initialize_llm_manager()
+        
+        # Initialize Todoist Service
+        self.todoist_service = self._initialize_todoist_service()
+        
+        # Initialize Context Manager
+        self.context_manager = ContextManager(max_context_items=10)
+        
         # Command registry
         self.commands: Dict[str, Callable] = {
             "/help": self.cmd_help,
             "/tasks": self.cmd_tasks,
             "/add": self.cmd_add_task,
+            "/complete": self.cmd_complete_task,
+            "/today": self.cmd_today_tasks,
             "/projects": self.cmd_projects,
             "/labels": self.cmd_labels,
             "/today": self.cmd_today,
@@ -63,6 +79,11 @@ class CommandProcessor:
         # Context storage
         self.context_data: List[str] = []
         self.session_data: Dict[str, Any] = {}
+    
+    async def initialize(self) -> None:
+        """Initialize services asynchronously."""
+        # Services are already initialized in __init__, this is for compatibility
+        pass
     
     async def process_command(self, command_line: str) -> None:
         """Process a slash command."""
@@ -106,12 +127,28 @@ class CommandProcessor:
                 "timestamp": datetime.now().isoformat()
             })
             
-            # Show loading indicator
+            # Show loading indicator and process with LLM
             with self.ui_manager.show_loading("Processing with AI..."):
-                await asyncio.sleep(0.5)  # Simulate processing
-                
-                # TODO: Integrate with actual LLM
-                response = f"AI Response to: '{message}'\n\nThis is a placeholder response. The actual LLM integration will be implemented in the next phase."
+                try:
+                    # Check if LLM is available
+                    available_providers = self.llm_manager.get_available_providers()
+                    if not available_providers:
+                        response = "❌ No LLM providers configured. Please set up your API keys in the configuration."
+                    else:
+                        # Prepare context for AI
+                        context_for_ai = self.context_manager.get_context_for_ai()
+                        
+                        # Combine message with context if available
+                        if context_for_ai:
+                            full_message = f"{context_for_ai}\n\nUser Message: {message}"
+                        else:
+                            full_message = message
+                        
+                        # Generate response using LLM
+                        response = await self.llm_manager.chat(full_message)
+                        
+                except Exception as llm_error:
+                    response = f"❌ Error communicating with AI: {str(llm_error)}\n\nPlease check your API keys and internet connection."
                 
             self.ui_manager.render_ai_response(response)
             
@@ -133,28 +170,72 @@ class CommandProcessor:
         self.ui_manager.render_help_menu()
     
     async def cmd_tasks(self, args: List[str]) -> None:
-        """List tasks."""
-        # TODO: Integrate with Todoist API
-        sample_tasks = [
-            {
-                "id": "123456789",
-                "content": "Complete project documentation",
-                "project_name": "Work",
-                "due": {"date": "2024-01-15"},
-                "priority": 1,
-                "labels": ["urgent", "documentation"]
-            },
-            {
-                "id": "987654321", 
-                "content": "Buy groceries for the week",
-                "project_name": "Personal",
-                "due": {"date": "2024-01-14"},
-                "priority": 3,
-                "labels": ["shopping"]
-            }
-        ]
-        
-        self.ui_manager.render_task_table(sample_tasks, "All Tasks")
+        """List tasks with optional filtering."""
+        try:
+            if not self.todoist_service:
+                self.ui_manager.show_error("Todoist API not available. Please configure your API token.")
+                return
+            
+            # Parse arguments for filtering
+            project_name = None
+            filter_expr = None
+            
+            if args:
+                if args[0].startswith("project:"):
+                    project_name = args[0].replace("project:", "")
+                elif args[0].startswith("filter:"):
+                    filter_expr = " ".join(args).replace("filter:", "")
+                else:
+                    # Default to project name
+                    project_name = " ".join(args)
+            
+            with self.ui_manager.show_loading("Loading tasks..."):
+                # Get tasks from Todoist
+                if project_name:
+                    tasks = self.todoist_service.get_tasks(project_name=project_name)
+                elif filter_expr:
+                    tasks = self.todoist_service.get_tasks(filter_expr=filter_expr)
+                else:
+                    tasks = self.todoist_service.get_tasks()
+            
+            # Convert to display format
+            task_data = []
+            for task in tasks:
+                task_data.append({
+                    "id": task.id,
+                    "content": task.content,
+                    "project_name": getattr(task, 'project_name', 'Unknown'),
+                    "due": task.due.string if task.due else "No due date",
+                    "priority": task.priority.value if task.priority else 1,
+                    "labels": getattr(task, 'labels', [])
+                })
+            
+            if task_data:
+                title = f"Tasks ({len(task_data)} found)"
+                if project_name:
+                    title += f" in project '{project_name}'"
+                elif filter_expr:
+                    title += f" matching '{filter_expr}'"
+                    
+                self.ui_manager.render_task_table(task_data, title)
+            else:
+                self.ui_manager.show_info("No tasks found.")
+                
+        except Exception as e:
+            self.ui_manager.show_error(f"Error loading tasks: {e}")
+            # Fallback to sample data
+            self.ui_manager.show_info("Showing sample data due to error.")
+            sample_tasks = [
+                {
+                    "id": "123456789",
+                    "content": "Complete project documentation",
+                    "project_name": "Work",
+                    "due": {"date": "2024-01-15"},
+                    "priority": 1,
+                    "labels": ["urgent", "documentation"]
+                }
+            ]
+            self.ui_manager.render_task_table(sample_tasks, "Sample Tasks")
     
     async def cmd_add_task(self, args: List[str]) -> None:
         """Add a new task."""
@@ -162,28 +243,192 @@ class CommandProcessor:
             self.ui_manager.show_error("Please provide a task description.\nUsage: /add <task description>")
             return
         
-        task_content = " ".join(args)
+        if not self.todoist_service:
+            self.ui_manager.show_error("Todoist API not available. Please configure your API token.")
+            return
         
-        # TODO: Integrate with Todoist API
-        self.ui_manager.show_success(f"Task added: '{task_content}'")
+        try:
+            task_content = " ".join(args)
+            
+            with self.ui_manager.show_loading("Creating task..."):
+                # Use natural language parsing for enhanced task creation
+                task = self.todoist_service.create_task_from_natural_language(task_content)
+            
+            self.ui_manager.show_success(f"✅ Task created: {task.content}")
+            
+            # Show additional details if parsed
+            details = []
+            if task.due:
+                details.append(f"Due: {task.due.string}")
+            if task.priority and task.priority != Priority.NORMAL:
+                details.append(f"Priority: {task.priority.value}")
+            if hasattr(task, 'project_name') and task.project_name:
+                details.append(f"Project: {task.project_name}")
+            
+            if details:
+                self.ui_manager.show_info(f"Details: {', '.join(details)}")
+                
+        except Exception as e:
+             self.ui_manager.show_error(f"Error creating task: {e}")
+             self.ui_manager.show_info("Task creation failed. Please check your Todoist API connection.")
+    
+    async def cmd_complete_task(self, args: List[str]) -> None:
+        """Complete a task by ID or search term."""
+        if not args:
+            self.ui_manager.show_error("Please provide a task ID or search term.")
+            return
+        
+        if not self.todoist_service:
+            self.ui_manager.show_error("Todoist API not available. Please configure your API token.")
+            return
+        
+        try:
+            search_term = " ".join(args)
+            
+            # If it looks like a task ID, try to complete directly
+            if search_term.isdigit() or len(search_term) > 8:
+                try:
+                    with self.ui_manager.show_loading("Completing task..."):
+                        success = self.todoist_service.complete_task(search_term)
+                    
+                    if success:
+                        self.ui_manager.show_success(f"✅ Task completed!")
+                        return
+                except:
+                    pass  # Fall through to search
+            
+            # Search for tasks matching the term
+            with self.ui_manager.show_loading("Searching for tasks..."):
+                tasks = self.todoist_service.search_tasks(search_term)
+            
+            if not tasks:
+                self.ui_manager.show_error(f"No tasks found matching '{search_term}'")
+                return
+            
+            if len(tasks) == 1:
+                # Complete the single matching task
+                task = tasks[0]
+                with self.ui_manager.show_loading("Completing task..."):
+                    success = self.todoist_service.complete_task(task.id)
+                
+                if success:
+                    self.ui_manager.show_success(f"✅ Completed: {task.content}")
+                else:
+                    self.ui_manager.show_error("Failed to complete task")
+            else:
+                # Show multiple matches for user to choose
+                self.ui_manager.show_info(f"Found {len(tasks)} matching tasks:")
+                task_data = []
+                for task in tasks[:5]:  # Show max 5 matches
+                    task_data.append({
+                        "id": task.id,
+                        "content": task.content,
+                        "project_name": getattr(task, 'project_name', 'Unknown'),
+                        "due": task.due.string if task.due else "No due date",
+                        "priority": task.priority.value if task.priority else 1,
+                        "labels": getattr(task, 'labels', [])
+                    })
+                
+                self.ui_manager.render_task_table(task_data, "Matching Tasks")
+                self.ui_manager.show_info("Use '/complete <task_id>' to complete a specific task.")
+                
+        except Exception as e:
+             self.ui_manager.show_error(f"Error completing task: {e}")
+    
+    async def cmd_today_tasks(self, args: List[str]) -> None:
+        """Show today's tasks."""
+        if not self.todoist_service:
+            self.ui_manager.show_error("Todoist API not available. Please configure your API token.")
+            return
+        
+        try:
+            with self.ui_manager.show_loading("Loading today's tasks..."):
+                tasks = self.todoist_service.get_today_tasks()
+            
+            if not tasks:
+                self.ui_manager.show_info("🎉 No tasks for today! You're all caught up.")
+                return
+            
+            # Convert tasks to display format
+            task_data = []
+            for task in tasks:
+                task_data.append({
+                    "id": task.id,
+                    "content": task.content,
+                    "project_name": getattr(task, 'project_name', 'Unknown'),
+                    "due": task.due.string if task.due else "Today",
+                    "priority": task.priority.value if task.priority else 1,
+                    "labels": getattr(task, 'labels', [])
+                })
+            
+            self.ui_manager.render_task_table(task_data, f"📅 Today's Tasks ({len(tasks)})")
+            
+        except Exception as e:
+            self.ui_manager.show_error(f"Error loading today's tasks: {e}")
+            # Fallback to sample data
+            self.ui_manager.show_info("Showing sample data (Todoist API unavailable)")
+            sample_tasks = [
+                {
+                    "id": "sample1",
+                    "content": "Review project proposal",
+                    "project_name": "Work",
+                    "due": "Today",
+                    "priority": 3,
+                    "labels": ["urgent"]
+                },
+                {
+                    "id": "sample2", 
+                    "content": "Buy groceries",
+                    "project_name": "Personal",
+                    "due": "Today",
+                    "priority": 1,
+                    "labels": []
+                }
+            ]
+            self.ui_manager.render_task_table(sample_tasks, "📅 Today's Tasks (Sample)")
     
     async def cmd_projects(self, args: List[str]) -> None:
-        """List projects."""
-        # TODO: Integrate with Todoist API
-        sample_projects = [
-            {
-                "name": "Work",
-                "comment_count": 15,
-                "url": "https://todoist.com/showProject?id=123"
-            },
-            {
-                "name": "Personal",
-                "comment_count": 8,
-                "url": "https://todoist.com/showProject?id=456"
-            }
-        ]
-        
-        self.ui_manager.render_project_tree(sample_projects)
+        """List all projects."""
+        try:
+            if not self.todoist_service:
+                self.ui_manager.show_error("Todoist API not available. Please configure your API token.")
+                return
+            
+            with self.ui_manager.show_loading("Loading projects..."):
+                projects = self.todoist_service.get_projects()
+            
+            # Convert to display format
+            project_data = []
+            for project in projects:
+                # Get task count for each project
+                try:
+                    tasks = self.todoist_service.get_tasks(project_name=project.name)
+                    task_count = len(tasks)
+                except:
+                    task_count = 0
+                
+                project_data.append({
+                    "id": project.id,
+                    "name": project.name,
+                    "color": project.color.value if project.color else "default",
+                    "task_count": task_count,
+                    "is_favorite": getattr(project, 'is_favorite', False)
+                })
+            
+            if project_data:
+                self.ui_manager.render_project_tree(project_data)
+            else:
+                self.ui_manager.show_info("No projects found.")
+                
+        except Exception as e:
+            self.ui_manager.show_error(f"Error loading projects: {e}")
+            # Fallback to sample data
+            self.ui_manager.show_info("Showing sample data due to error.")
+            sample_projects = [
+                {"id": "sample-1", "name": "Work", "color": "blue", "task_count": 0},
+                {"id": "sample-2", "name": "Personal", "color": "green", "task_count": 0}
+            ]
+            self.ui_manager.render_project_tree(sample_projects)
     
     async def cmd_labels(self, args: List[str]) -> None:
         """List labels."""
@@ -220,29 +465,104 @@ class CommandProcessor:
             self.ui_manager.show_error("Please provide a file path.\nUsage: /read <file_path>")
             return
         
-        file_path = args[0]
+        file_path_str = args[0]
         
         try:
-            # TODO: Implement markdown file reading
-            self.context_data.append(f"File: {file_path}")
-            self.ui_manager.show_success(f"Added '{file_path}' to context")
+            from pathlib import Path
+            
+            # Convert to Path object
+            file_path = Path(file_path_str)
+            
+            # Check if file exists
+            if not file_path.exists():
+                self.ui_manager.show_error(f"File not found: {file_path}")
+                return
+            
+            # Check if it's a markdown file
+            if file_path.suffix.lower() not in ['.md', '.markdown']:
+                self.ui_manager.show_error("Only markdown files (.md, .markdown) are supported.")
+                return
+            
+            # Show loading indicator
+            with self.ui_manager.loading("Reading markdown file..."):
+                # Add file to context manager
+                success = self.context_manager.add_file(file_path)
+            
+            if success:
+                # Get file details
+                details = self.context_manager.get_file_details(file_path)
+                
+                if details:
+                    self.ui_manager.show_success(f"✅ Added '{file_path.name}' to context")
+                    
+                    # Show file summary
+                    self.console.print()
+                    self.console.print(f"📄 [bold]{details['title']}[/bold]")
+                    self.console.print(f"📊 {details['word_count']} words, ~{details['reading_time']} min read")
+                    self.console.print(f"📑 {details['sections']} sections")
+                    
+                    if details['tags']:
+                        self.console.print(f"🏷️  Tags: {', '.join(details['tags'])}")
+                    
+                    self.console.print()
+                    self.console.print("📝 Summary:")
+                    self.console.print(details['summary'])
+                    
+                    if details['key_points']:
+                        self.console.print()
+                        self.console.print("🔑 Key Points:")
+                        for point in details['key_points'][:3]:  # Show first 3 key points
+                            self.console.print(f"  • {point}")
+                        
+                        if len(details['key_points']) > 3:
+                            self.console.print(f"  ... and {len(details['key_points']) - 3} more")
+                else:
+                    self.ui_manager.show_success(f"✅ Added '{file_path.name}' to context")
+            else:
+                self.ui_manager.show_error("Failed to parse markdown file.")
             
         except Exception as e:
             self.ui_manager.show_error(f"Failed to read file: {e}")
     
     async def cmd_show_context(self, args: List[str]) -> None:
         """Show current context."""
-        if not self.context_data:
-            self.ui_manager.show_info("No context data available.")
+        # Check if we have any context
+        if not self.context_manager.context_items:
+            self.ui_manager.show_info("No context files loaded.")
             return
         
-        context_text = "\n".join(self.context_data)
-        self.ui_manager.show_info(f"Current Context:\n{context_text}")
+        # Show context summary
+        summary = self.context_manager.get_context_summary()
+        self.console.print(summary)
+        
+        # Show context stats
+        stats = self.context_manager.get_context_stats()
+        self.console.print()
+        self.console.print("📊 [bold]Context Statistics:[/bold]")
+        self.console.print(f"  • Total files: {stats['total_files']}")
+        self.console.print(f"  • Total words: {stats['total_words']:,}")
+        self.console.print(f"  • Total sections: {stats['total_sections']}")
+        
+        if stats['most_accessed']:
+            self.console.print(f"  • Most accessed: {stats['most_accessed']['file']} ({stats['most_accessed']['count']} times)")
+        
+        if stats['recently_added']:
+            self.console.print(f"  • Recently added: {stats['recently_added']['file']}")
+        
+        # Show available commands
+        self.console.print()
+        self.console.print("💡 [dim]Use /clear to clear context, or /read <file> to add more files[/dim]")
     
     async def cmd_clear_context(self, args: List[str]) -> None:
         """Clear current context."""
-        self.context_data.clear()
-        self.ui_manager.show_success("Context cleared")
+        files_count = len(self.context_manager.context_items)
+        
+        if files_count == 0:
+            self.ui_manager.show_info("No context to clear.")
+            return
+        
+        self.context_manager.clear_context()
+        self.ui_manager.show_success(f"✅ Cleared {files_count} file(s) from context")
     
     async def cmd_save_session(self, args: List[str]) -> None:
         """Save current session."""
@@ -398,15 +718,97 @@ class CommandProcessor:
     async def _ensure_current_session(self) -> None:
         """Ensure there's a current session, create one if needed."""
         if not self.current_session_id:
-            session = await self.session_service.create_session(
-                session_metadata={"name": f"auto_{datetime.now().strftime('%Y%m%d_%H%M%S')}", "auto_created": True}
+            session = self.session_service.create_session(
+                name=f"auto_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
+                session_metadata={"auto_created": True}
             )
             self.current_session_id = session.session_id
     
+    def _initialize_llm_manager(self) -> LLMManager:
+        """Initialize the LLM Manager with configured providers."""
+        try:
+            # Get API keys from config
+            claude_api_key = self.config.claude.api_key
+            gemini_api_key = self.config.gemini.api_key
+            
+            # Determine default provider
+            default_provider = None
+            if self.config.default_llm == "claude" and claude_api_key:
+                default_provider = LLMProvider.CLAUDE
+            elif self.config.default_llm == "gemini" and gemini_api_key:
+                default_provider = LLMProvider.GEMINI
+            
+            # Create manager with available providers
+            manager = create_multi_provider_manager(
+                claude_api_key=claude_api_key,
+                gemini_api_key=gemini_api_key,
+                default_provider=default_provider
+            )
+            
+            # Set system prompt for Todoist AI CLI
+            system_prompt = """You are an AI assistant integrated into a Todoist CLI application. 
+You help users manage their tasks, projects, and productivity. You can:
+- Analyze task lists and suggest improvements
+- Help organize projects and priorities
+- Provide productivity insights
+- Answer questions about task management
+- Suggest task breakdowns for complex projects
+
+Be helpful, concise, and focused on productivity and task management."""
+            
+            manager.set_system_prompt(system_prompt)
+            
+            return manager
+            
+        except Exception as e:
+            self.ui_manager.show_error(f"Failed to initialize LLM Manager: {e}")
+            # Return a basic manager without providers
+            return LLMManager()
+    
+    def _initialize_todoist_service(self) -> Optional[TodoistService]:
+        """Initialize Todoist service with API token."""
+        try:
+            # Get Todoist API key from config
+            api_key = self.config.todoist.api_key if self.config.todoist else None
+            
+            if not api_key:
+                self.ui_manager.show_warning("Todoist API key not configured. Some features will be unavailable.")
+                return None
+            
+            # Create and test Todoist service
+            service = TodoistService(api_key)
+            
+            # Test connection
+            if service.test_connection():
+                self.ui_manager.show_success("✅ Todoist API connected successfully")
+                return service
+            else:
+                self.ui_manager.show_error("❌ Failed to connect to Todoist API")
+                return None
+                
+        except Exception as e:
+            self.ui_manager.show_error(f"Error initializing Todoist service: {e}")
+            return None
+    
     async def cmd_show_config(self, args: List[str]) -> None:
         """Show current configuration."""
+        # Get LLM provider status
+        available_providers = self.llm_manager.get_available_providers()
+        provider_status = []
+        
+        for provider in [LLMProvider.CLAUDE, LLMProvider.GEMINI]:
+            if provider in available_providers:
+                provider_status.append(f"✅ {provider.value}")
+            else:
+                provider_status.append(f"❌ {provider.value}")
+        
+        # Get Todoist status
+        todoist_status = "✅ Connected" if self.todoist_service else "❌ Not configured"
+        
         config_data = {
-            "LLM Provider": self.config.default_llm,
+            "Default LLM": self.config.default_llm,
+            "Available Providers": ", ".join(provider_status),
+            "Todoist API": todoist_status,
             "Theme": self.config.ui.theme,
             "Auto-complete": self.config.ui.auto_complete,
             "Auto-save": self.config.session_autosave,
@@ -458,24 +860,93 @@ class CommandProcessor:
     
     async def cmd_ai_suggest(self, args: List[str]) -> None:
         """Get AI task suggestions."""
-        # TODO: Implement AI suggestions
-        suggestions = [
-            "Review and prioritize your overdue tasks",
-            "Schedule time blocks for your high-priority items",
-            "Break down large tasks into smaller, manageable steps",
-            "Set up recurring tasks for routine activities"
-        ]
-        
-        self.console.print("🤖 AI Suggestions:", style=self.ui_manager.get_style("accent"))
-        for i, suggestion in enumerate(suggestions, 1):
-            self.console.print(f"  {i}. {suggestion}", style=self.ui_manager.get_style("info"))
+        try:
+            # Check if LLM is available
+            available_providers = self.llm_manager.get_available_providers()
+            if not available_providers:
+                self.ui_manager.show_error("No LLM providers configured. Please set up your API keys.")
+                return
+            
+            # Prepare context for suggestions
+            context = "Based on typical productivity patterns, provide 4-5 actionable task management suggestions."
+            if args:
+                context += f" Focus on: {' '.join(args)}"
+            
+            with self.ui_manager.show_loading("Getting AI suggestions..."):
+                response = await self.llm_manager.chat(context)
+            
+            self.console.print("🤖 AI Suggestions:", style=self.ui_manager.get_style("accent"))
+            self.console.print(response, style=self.ui_manager.get_style("info"))
+            
+        except Exception as e:
+            self.ui_manager.show_error(f"Error getting AI suggestions: {e}")
+            # Fallback to static suggestions
+            suggestions = [
+                "Review and prioritize your overdue tasks",
+                "Schedule time blocks for your high-priority items", 
+                "Break down large tasks into smaller, manageable steps",
+                "Set up recurring tasks for routine activities"
+            ]
+            
+            self.console.print("🤖 Fallback Suggestions:", style=self.ui_manager.get_style("accent"))
+            for i, suggestion in enumerate(suggestions, 1):
+                self.console.print(f"  {i}. {suggestion}", style=self.ui_manager.get_style("info"))
     
     async def cmd_ai_organize(self, args: List[str]) -> None:
         """AI-powered task organization."""
-        # TODO: Implement AI organization
-        self.ui_manager.show_info("AI task organization will be implemented in the next phase.")
+        try:
+            # Check if LLM is available
+            available_providers = self.llm_manager.get_available_providers()
+            if not available_providers:
+                self.ui_manager.show_error("No LLM providers configured. Please set up your API keys.")
+                return
+            
+            # Prepare context for organization
+            context = """Help me organize my tasks and projects. Provide suggestions for:
+1. Task prioritization strategies
+2. Project grouping and categorization
+3. Time management techniques
+4. Workflow optimization"""
+            
+            if args:
+                context += f"\n\nSpecific focus area: {' '.join(args)}"
+            
+            with self.ui_manager.show_loading("Analyzing task organization..."):
+                response = await self.llm_manager.chat(context)
+            
+            self.console.print("🗂️ AI Organization Suggestions:", style=self.ui_manager.get_style("accent"))
+            self.console.print(response, style=self.ui_manager.get_style("info"))
+            
+        except Exception as e:
+            self.ui_manager.show_error(f"Error getting organization suggestions: {e}")
+            self.ui_manager.show_info("AI task organization temporarily unavailable.")
     
     async def cmd_ai_analyze(self, args: List[str]) -> None:
-        """Productivity analysis."""
-        # TODO: Implement productivity analysis
-        self.ui_manager.show_info("Productivity analysis will be implemented in the next phase.")
+        """AI-powered productivity analysis."""
+        try:
+            # Check if LLM is available
+            available_providers = self.llm_manager.get_available_providers()
+            if not available_providers:
+                self.ui_manager.show_error("No LLM providers configured. Please set up your API keys.")
+                return
+            
+            # Prepare context for analysis
+            context = """Analyze my productivity patterns and provide insights on:
+1. Task completion trends
+2. Time management effectiveness
+3. Project progress patterns
+4. Areas for improvement
+5. Productivity optimization recommendations"""
+            
+            if args:
+                context += f"\n\nSpecific analysis focus: {' '.join(args)}"
+            
+            with self.ui_manager.show_loading("Analyzing productivity patterns..."):
+                response = await self.llm_manager.chat(context)
+            
+            self.console.print("📊 AI Productivity Analysis:", style=self.ui_manager.get_style("accent"))
+            self.console.print(response, style=self.ui_manager.get_style("info"))
+            
+        except Exception as e:
+            self.ui_manager.show_error(f"Error performing productivity analysis: {e}")
+            self.ui_manager.show_info("Productivity analysis temporarily unavailable.")

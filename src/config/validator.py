@@ -26,13 +26,13 @@ def validate_api_keys(config: AppConfig) -> List[str]:
     has_gemini = bool(config.gemini.api_key)
     
     if not (has_claude or has_gemini):
-        errors.append("At least one LLM API key is required (ANTHROPIC_API_KEY or GOOGLE_API_KEY)")
+        errors.append("At least one LLM API key is required (CLAUDE_API_KEY or GEMINI_API_KEY)")
     
     # Warn if default LLM doesn't have API key
     if config.default_llm == "claude" and not has_claude:
-        errors.append("DEFAULT_LLM is set to 'claude' but ANTHROPIC_API_KEY is missing")
+        errors.append("DEFAULT_LLM is set to 'claude' but CLAUDE_API_KEY is missing")
     elif config.default_llm == "gemini" and not has_gemini:
-        errors.append("DEFAULT_LLM is set to 'gemini' but GOOGLE_API_KEY is missing")
+        errors.append("DEFAULT_LLM is set to 'gemini' but GEMINI_API_KEY is missing")
     
     return errors
 

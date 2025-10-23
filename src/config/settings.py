@@ -27,6 +27,9 @@ class TodoistConfig(BaseSettings):
     
     class Config:
         env_prefix = "TODOIST_"
+        env_file = ".env"
+        env_file_encoding = "utf-8"
+        extra = "ignore"
 
 
 class ClaudeConfig(BaseSettings):
@@ -51,6 +54,9 @@ class ClaudeConfig(BaseSettings):
     
     class Config:
         env_prefix = "CLAUDE_"
+        env_file = ".env"
+        env_file_encoding = "utf-8"
+        extra = "ignore"
 
 
 class GeminiConfig(BaseSettings):
@@ -75,6 +81,9 @@ class GeminiConfig(BaseSettings):
     
     class Config:
         env_prefix = "GEMINI_"
+        env_file = ".env"
+        env_file_encoding = "utf-8"
+        extra = "ignore"
 
 
 class DatabaseConfig(BaseSettings):
@@ -98,6 +107,9 @@ class DatabaseConfig(BaseSettings):
     
     class Config:
         env_prefix = "DATABASE_"
+        env_file = ".env"
+        env_file_encoding = "utf-8"
+        extra = "ignore"
 
 
 class UIConfig(BaseSettings):
@@ -126,6 +138,9 @@ class UIConfig(BaseSettings):
     
     class Config:
         env_prefix = "UI_"
+        env_file = ".env"
+        env_file_encoding = "utf-8"
+        extra = "ignore"
 
 
 class AppConfig(BaseSettings):

@@ -512,6 +512,15 @@ class TodoistAPI:
             User object
         """
         data = await self._make_request("GET", "/user", use_sync_api=True)
+        
+        # Map full_name to name if name is not present
+        if 'name' not in data and 'full_name' in data:
+            data['name'] = data['full_name']
+        
+        # Ensure name field exists with a fallback
+        if 'name' not in data:
+            data['name'] = data.get('email', 'Unknown User')
+        
         return User(**data)
     
     # Utility methods

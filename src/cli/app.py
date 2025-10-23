@@ -17,16 +17,19 @@ from ..config import get_config, is_configured
 from ..config.validator import print_configuration_status, check_env_file
 from .splash import show_splash_screen
 from .repl import TodoistREPL
+from .advanced_ui import AdvancedTerminalUI
 from ..utils.logging import setup_logging
 
 
 class TodoistAICLI:
     """Main CLI application class."""
     
-    def __init__(self):
+    def __init__(self, use_advanced_ui: bool = False):
         self.console = Console()
         self.config = None
         self.repl = None
+        self.advanced_ui = None
+        self.use_advanced_ui = use_advanced_ui
         
         # Install rich traceback for better error display
         install_rich_traceback(show_locals=True)
@@ -56,8 +59,11 @@ class TodoistAICLI:
             if not print_configuration_status(self.console):
                 return False
             
-            # Initialize REPL
-            self.repl = TodoistREPL(self.config, self.console)
+            # Initialize UI based on mode
+            if self.use_advanced_ui:
+                self.advanced_ui = AdvancedTerminalUI(self.config, self.console)
+            else:
+                self.repl = TodoistREPL(self.config, self.console)
             
             return True
             
@@ -77,12 +83,15 @@ class TodoistAICLI:
             sys.exit(1)
         
         try:
-            # Show splash screen if enabled
-            if self.config.ui.show_splash:
+            # Show splash screen if enabled (only for traditional REPL)
+            if not self.use_advanced_ui and self.config.ui.show_splash:
                 show_splash_screen(self.console, self.config)
             
-            # Start the REPL
-            asyncio.run(self.repl.run())
+            # Start the appropriate UI
+            if self.use_advanced_ui:
+                asyncio.run(self.advanced_ui.run())
+            else:
+                asyncio.run(self.repl.run())
             
         except KeyboardInterrupt:
             self.console.print("\n👋 Goodbye!", style="bold blue")
@@ -123,11 +132,16 @@ def main(
         "--no-splash",
         help="Skip splash screen"
     ),
+    advanced_ui: bool = typer.Option(
+        False,
+        "--advanced-ui",
+        help="Use advanced chat-like terminal interface"
+    ),
 ) -> None:
     """Start the Todoist AI CLI."""
     
     # Create CLI instance
-    cli = TodoistAICLI()
+    cli = TodoistAICLI(use_advanced_ui=advanced_ui)
     
     # Handle config check mode
     if config_check:

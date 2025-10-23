@@ -4,6 +4,7 @@ UI Manager for rich console output and formatting.
 
 from typing import List, Dict, Any, Optional, Union
 from datetime import datetime, date
+from contextlib import contextmanager
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
@@ -109,6 +110,16 @@ class UIManager:
         progress.add_task(description=message, total=None)
         return progress
     
+    @contextmanager
+    def loading(self, message: str = "Loading..."):
+        """Context manager for showing loading spinner."""
+        progress = self.show_loading(message)
+        progress.start()
+        try:
+            yield
+        finally:
+            progress.stop()
+    
     def render_task_table(self, tasks: List[Dict[str, Any]], title: str = "Tasks") -> None:
         """Render tasks in a formatted table."""
         if not tasks:
@@ -199,6 +210,7 @@ class UIManager:
             "📋 Task Management": [
                 ("/tasks", "List all tasks"),
                 ("/add <task>", "Add a new task"),
+                ("/complete <task>", "Complete a task by ID or search"),
                 ("/today", "Show today's tasks"),
                 ("/upcoming", "Show upcoming tasks"),
                 ("/overdue", "Show overdue tasks"),
