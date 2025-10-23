@@ -219,7 +219,7 @@ export class CommandHandler {
       await command.handler(args);
       return {
         success: true,
-        message: `Comando ${commandName} eseguito con successo.`
+        message: ""
       };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Errore sconosciuto';

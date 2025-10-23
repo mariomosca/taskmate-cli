@@ -137,17 +137,20 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
       {/* Messages */}
       <Box flexDirection="column" flexGrow={1} marginBottom={1}>
         {state.messages.map((message) => (
-          <Box key={message.id} marginBottom={1}>
-            <Text color={message.role === 'user' ? 'green' : 'blue'} bold>
-              {message.role === 'user' ? '👤 Tu' : '🤖 Assistente'}:
+          <Box key={message.id} marginBottom={0.5}>
+            {message.role === 'user' && (
+              <Text color="green" bold>
+                👤 Tu:
+              </Text>
+            )}
+            <Text color={message.role === 'user' ? 'white' : 'blue'}>
+              {message.role === 'user' ? ' ' : ''}{message.content}
             </Text>
-            <Text> {message.content}</Text>
           </Box>
         ))}
         
         {state.isLoading && (
           <Box>
-            <Text color="blue">🤖 Assistente: </Text>
             <Text color="gray">Sto pensando...</Text>
           </Box>
         )}

@@ -251,7 +251,7 @@ export class SessionManager {
 
       // Costruisci il testo del contesto per il riassunto
       const chatHistory = result.optimizedMessages
-        .map(msg => `${msg.role === 'user' ? 'Utente' : 'Assistente'}: ${msg.content}`)
+        .map(msg => `${msg.role === 'user' ? 'Utente' : ''}: ${msg.content}`)
         .join('\n\n');
 
       return chatHistory;
@@ -259,7 +259,7 @@ export class SessionManager {
       console.error('Errore durante la preparazione del contesto:', error);
       // Fallback: restituisci gli ultimi messaggi
       const lastMessages = session.messages.slice(-5)
-        .map(msg => `${msg.role === 'user' ? 'Utente' : 'Assistente'}: ${msg.content}`)
+        .map(msg => `${msg.role === 'user' ? 'Utente' : ''}: ${msg.content}`)
         .join('\n\n');
       return `Contesto degli ultimi messaggi:\n\n${lastMessages}`;
     }

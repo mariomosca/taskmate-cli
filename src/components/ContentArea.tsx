@@ -20,23 +20,20 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
 }) => {
   const renderMessage = (message: Message) => {
     const isUser = message.role === 'user';
-    const icon = isUser ? figures.arrowRight : '🤖';
+    const icon = isUser ? figures.arrowRight : '';
     const color = isUser ? 'cyan' : 'green';
     
     return (
-      <Box key={message.id} flexDirection="column" marginBottom={1}>
-        <Box flexDirection="row" alignItems="center" marginBottom={0}>
-          <Text color={color}>{icon} </Text>
-          <Text color={color} bold>
-            {isUser ? 'Tu' : 'AI Assistant'}
-          </Text>
-          <Text color="gray" dimColor>
-            {' '}• {message.timestamp.toLocaleTimeString()}
-          </Text>
-        </Box>
+      <Box key={message.id} flexDirection="column" marginBottom={0.5}>
+        {isUser && (
+          <Box flexDirection="row" alignItems="center" marginBottom={0}>
+            <Text color={color}>{icon} </Text>
+            <Text color={color} bold>Tu</Text>
+          </Box>
+        )}
         
-        <Box paddingLeft={3}>
-          <Text>{message.content}</Text>
+        <Box paddingLeft={isUser ? 3 : 0}>
+          <Text color={isUser ? 'white' : 'green'}>{message.content}</Text>
         </Box>
         
         {message.metadata && (
