@@ -1,0 +1,54 @@
+{
+  "name": "todoist-ai-cli",
+  "version": "0.1.0",
+  "description": "AI-powered CLI for Todoist task management",
+  "main": "dist/index.js",
+  "type": "module",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "dev": "tsx src/index.tsx",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "test": "jest",
+    "lint": "eslint src/**/*.{ts,tsx}",
+    "type-check": "tsc --noEmit"
+  },
+  "bin": {
+    "todoist-ai": "./dist/index.js"
+  },
+  "dependencies": {
+    "chalk": "^5.3.0",
+    "conf": "^12.0.0",
+    "figures": "^6.0.1",
+    "gradient-string": "^2.0.2",
+    "ink": "^4.4.1",
+    "ink-big-text": "^2.0.0",
+    "ink-progress-bar": "^3.0.0",
+    "ink-spinner": "^5.0.0",
+    "react": "^18.2.0"
+  },
+  "devDependencies": {
+    "@types/gradient-string": "^1.1.5",
+    "@types/jest": "^29.5.0",
+    "@types/node": "^20.0.0",
+    "@types/react": "^18.2.0",
+    "@typescript-eslint/eslint-plugin": "^6.14.0",
+    "@typescript-eslint/parser": "^6.14.0",
+    "eslint": "^8.55.0",
+    "ink-testing-library": "^3.0.0",
+    "jest": "^29.7.0",
+    "tsx": "^4.6.0",
+    "typescript": "^5.3.0"
+  },
+  "keywords": [
+    "cli",
+    "todoist",
+    "ai",
+    "productivity",
+    "task-management"
+  ],
+  "author": "Mario Mosca",
+  "license": "MIT"
+}

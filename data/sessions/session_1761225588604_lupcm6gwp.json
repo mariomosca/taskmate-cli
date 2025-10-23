@@ -1,0 +1,82 @@
+{
+  "id": "session_1761225588604_lupcm6gwp",
+  "name": "Sessione 10/23/2025",
+  "createdAt": "2025-10-23T13:19:48.648Z",
+  "updatedAt": "2025-10-23T13:48:51.677Z",
+  "messages": [
+    {
+      "id": "1761226186329",
+      "role": "system",
+      "content": "Comando sconosciuto: /. Usa /help per vedere i comandi disponibili.",
+      "timestamp": "2025-10-23T13:29:46.328Z"
+    },
+    {
+      "id": "1761226228227",
+      "role": "user",
+      "content": "ciao",
+      "timestamp": "2025-10-23T13:30:28.227Z"
+    },
+    {
+      "id": "1761226230236",
+      "role": "assistant",
+      "content": "Hai scritto: \"ciao\". Questa è una risposta mock dell'AI. In futuro qui ci sarà l'integrazione con Claude/Gemini.",
+      "timestamp": "2025-10-23T13:30:30.235Z",
+      "metadata": {
+        "llmProvider": "claude",
+        "processingTime": 1500
+      }
+    },
+    {
+      "id": "1761226294355",
+      "role": "system",
+      "content": "Comando sconosciuto: /pro. Usa /help per vedere i comandi disponibili.",
+      "timestamp": "2025-10-23T13:31:34.354Z"
+    },
+    {
+      "id": "1761226318495",
+      "role": "system",
+      "content": "Comando sconosciuto: /pro. Usa /help per vedere i comandi disponibili.",
+      "timestamp": "2025-10-23T13:31:58.494Z"
+    },
+    {
+      "id": "1761226349753",
+      "role": "system",
+      "content": "Progetti mock:\n• Progetto A (5 task)\n• Progetto B (3 task)\n• Progetto C (8 task)",
+      "timestamp": "2025-10-23T13:32:29.752Z"
+    },
+    {
+      "id": "1761226705473",
+      "role": "system",
+      "content": "Comando sconosciuto: /. Usa /help per vedere i comandi disponibili.",
+      "timestamp": "2025-10-23T13:38:25.472Z"
+    },
+    {
+      "id": "1761226742824",
+      "role": "system",
+      "content": "Progetti mock:\n• Progetto A (5 task)\n• Progetto B (3 task)\n• Progetto C (8 task)",
+      "timestamp": "2025-10-23T13:39:02.823Z"
+    },
+    {
+      "id": "1761227329658",
+      "role": "user",
+      "content": "ciao",
+      "timestamp": "2025-10-23T13:48:49.658Z"
+    },
+    {
+      "id": "1761227331673",
+      "role": "assistant",
+      "content": "Hai scritto: \"ciao\". Questa è una risposta mock dell'AI. In futuro qui ci sarà l'integrazione con Claude/Gemini.",
+      "timestamp": "2025-10-23T13:48:51.672Z",
+      "metadata": {
+        "llmProvider": "claude",
+        "processingTime": 1500
+      }
+    }
+  ],
+  "llmProvider": "claude",
+  "metadata": {
+    "totalMessages": 10,
+    "totalTokens": 0,
+    "lastActivity": "2025-10-23T13:48:51.677Z"
+  }
+}
