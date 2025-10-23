@@ -88,49 +88,6 @@ export class CommandHandler {
   }
 
   private registerCommands(): void {
-    // Todoist Commands
-    this.registerCommand({
-      command: '/tasks',
-      description: 'Mostra le tue task di Todoist',
-      usage: '/tasks [project_id] [--filter=filtro] [--limit=numero]',
-      handler: this.handleTasksCommand.bind(this)
-    });
-
-    this.registerCommand({
-      command: '/projects',
-      description: 'Mostra i tuoi progetti Todoist',
-      usage: '/projects [--shared] [--favorites]',
-      handler: this.handleProjectsCommand.bind(this)
-    });
-
-    this.registerCommand({
-      command: '/add-task',
-      description: 'Aggiungi una nuova task a Todoist',
-      usage: '/add-task <contenuto> [--project=id] [--due=data] [--priority=1-4]',
-      handler: this.handleAddTaskCommand.bind(this)
-    });
-
-    this.registerCommand({
-      command: '/complete',
-      description: 'Completa una task di Todoist',
-      usage: '/complete <task_id>',
-      handler: this.handleCompleteTaskCommand.bind(this)
-    });
-
-    this.registerCommand({
-      command: '/task-summary',
-      description: 'Mostra un riassunto delle tue task',
-      usage: '/task-summary',
-      handler: this.handleTaskSummaryCommand.bind(this)
-    });
-
-    this.registerCommand({
-      command: '/search-tasks',
-      description: 'Cerca task per contenuto',
-      usage: '/search-tasks <query>',
-      handler: this.handleSearchTasksCommand.bind(this)
-    });
-
     // Session Commands
     this.registerCommand({
       command: '/sessions',
@@ -231,264 +188,7 @@ export class CommandHandler {
     }
   }
 
-  // Todoist Command Handlers
-  private async handleTasksCommand(args: string[]): Promise<void> {
-    const loader = new ProgressiveLoader(this.context);
-    
-    try {
-      const options = this.parseArgs(args);
-      
-      // Step 1: Fetch tasks
-      loader.addStep('fetch', '📋 Recuperando le task...');
-      loader.startStep('fetch');
-      
-      const tasks = await this.context.todoistService.getTasks();
-      loader.completeStep('fetch', `${tasks.length} task recuperate`);
 
-      let filteredTasks = tasks;
-
-      if (options.project) {
-        loader.addStep('project-filter', '📁 Filtrando per progetto...');
-        loader.startStep('project-filter');
-        
-        filteredTasks = filteredTasks.filter(t => t.project_id === options.project);
-        loader.completeStep('project-filter', `${filteredTasks.length} task nel progetto`);
-      }
-
-      if (options.filter) {
-        loader.addStep('text-filter', '🔍 Filtrando per testo...');
-        loader.startStep('text-filter');
-        
-        const filterText = options.filter.toLowerCase();
-        filteredTasks = filteredTasks.filter(t => 
-          t.content.toLowerCase().includes(filterText) ||
-          t.description?.toLowerCase().includes(filterText)
-        );
-        
-        loader.completeStep('text-filter', `${filteredTasks.length} task dopo il filtro`);
-      }
-
-      const limit = parseInt(options.limit || '20');
-      const limitedTasks = filteredTasks.slice(0, limit);
-
-      // Format tasks as text output
-      let output = `📋 **Task trovate (${limitedTasks.length}):**\n\n`;
-      
-      if (limitedTasks.length === 0) {
-        output += "Nessuna task trovata.";
-      } else {
-        limitedTasks.forEach((task, index) => {
-          const priority = task.priority > 1 ? '🔥'.repeat(task.priority - 1) : '';
-          const dueDate = task.due ? ` 📅 ${task.due.date}` : '';
-          output += `${index + 1}. ${priority} ${task.content}${dueDate}\n`;
-          output += `   🆔 ${task.id} | 📁 ${task.project_id}\n\n`;
-        });
-      }
-
-      this.context.onOutput(output);
-
-      // Generate intelligent response using LLM
-      const taskData = {
-        total: limitedTasks.length,
-        tasks: limitedTasks.map(task => ({
-          id: task.id,
-          content: task.content,
-          priority: task.priority,
-          due: task.due?.date,
-          project_id: task.project_id,
-          completed: task.is_completed
-        })),
-        filters: options
-      };
-
-      const fallbackMessage = `✅ Trovate ${limitedTasks.length} task${limitedTasks.length !== 1 ? 's' : ''}.`;
-      const intelligentResponse = await this.generateIntelligentResponse('/tasks', taskData, fallbackMessage, loader);
-      this.context.onOutput(`\n${intelligentResponse}`);
-
-    } catch (error) {
-      loader.errorStep('fetch', `Errore: ${error instanceof Error ? error.message : 'Errore sconosciuto'}`);
-      throw new Error(`Impossibile recuperare le task: ${error instanceof Error ? error.message : 'Errore sconosciuto'}`);
-    } finally {
-      loader.clear();
-    }
-  }
-
-  private async handleProjectsCommand(args: string[]): Promise<void> {
-    const loader = new ProgressiveLoader(this.context);
-    
-    try {
-      const options = this.parseArgs(args);
-      
-      // Step 1: Fetch projects
-      loader.addStep('fetch', '📁 Recuperando i progetti...');
-      loader.startStep('fetch');
-      
-      const projects = await this.context.todoistService.getProjects();
-      loader.completeStep('fetch', `${projects.length} progetti recuperati`);
-
-      let filteredProjects = projects;
-
-      if (options.filter) {
-        loader.addStep('filter', '🔍 Filtrando i progetti...');
-        loader.startStep('filter');
-        
-        const filterText = options.filter.toLowerCase();
-        filteredProjects = filteredProjects.filter(p => 
-          p.name.toLowerCase().includes(filterText)
-        );
-        
-        loader.completeStep('filter', `${filteredProjects.length} progetti dopo il filtro`);
-      }
-
-      // Format projects as text output
-      let output = `📁 **Progetti trovati (${filteredProjects.length}):**\n\n`;
-      
-      if (filteredProjects.length === 0) {
-        output += "Nessun progetto trovato.";
-      } else {
-        filteredProjects.forEach((project, index) => {
-          const shared = project.is_shared ? ' 🤝' : '';
-          const favorite = project.is_favorite ? ' ⭐' : '';
-          const color = project.color ? ` 🎨${project.color}` : '';
-          output += `${index + 1}. ${project.name}${shared}${favorite}${color}\n`;
-          output += `   🆔 ${project.id} | 📊 ${project.comment_count || 0} commenti\n\n`;
-        });
-      }
-
-      this.context.onOutput(output);
-
-      // Generate intelligent response using LLM
-      const projectData = {
-        total: filteredProjects.length,
-        projects: filteredProjects.map(project => ({
-          id: project.id,
-          name: project.name,
-          color: project.color,
-          is_shared: project.is_shared,
-          is_favorite: project.is_favorite,
-          comment_count: project.comment_count
-        })),
-        filters: options
-      };
-
-      const fallbackMessage = `✅ Trovati ${filteredProjects.length} progetto${filteredProjects.length !== 1 ? 'i' : ''}.`;
-      const intelligentResponse = await this.generateIntelligentResponse('/projects', projectData, fallbackMessage, loader);
-      this.context.onOutput(`\n${intelligentResponse}`);
-
-    } catch (error) {
-      loader.errorStep('fetch', `Errore: ${error instanceof Error ? error.message : 'Errore sconosciuto'}`);
-      throw new Error(`Impossibile recuperare i progetti: ${error instanceof Error ? error.message : 'Errore sconosciuto'}`);
-    } finally {
-      loader.clear();
-    }
-  }
-
-  private async handleAddTaskCommand(args: string[]): Promise<void> {
-    if (args.length === 0) {
-      throw new Error('Devi specificare il contenuto della task. Uso: /add-task <contenuto> [opzioni]');
-    }
-
-    try {
-      const options = this.parseArgs(args);
-      const content = args.filter(arg => !arg.startsWith('--')).join(' ');
-
-      if (!content.trim()) {
-        throw new Error('Il contenuto della task non può essere vuoto.');
-      }
-
-      const taskData: CreateTaskRequest = {
-        content: content.trim()
-      };
-
-      if (options.project) {
-        taskData.project_id = options.project;
-      }
-
-      if (options.due) {
-        taskData.due_string = options.due;
-      }
-
-      if (options.priority) {
-        const priority = parseInt(options.priority);
-        if (priority >= 1 && priority <= 4) {
-          taskData.priority = priority as 1 | 2 | 3 | 4;
-        }
-      }
-
-      const task = await this.context.todoistService.createTask(taskData);
-      
-      this.context.onOutput(`✅ **Task creata con successo!**\n\n📝 ${task.content}\n🆔 ID: ${task.id}\n📁 Progetto: ${task.project_id || 'Inbox'}`);
-    } catch (error) {
-      throw new Error(`Impossibile creare la task: ${error instanceof Error ? error.message : 'Errore sconosciuto'}`);
-    }
-  }
-
-  private async handleCompleteTaskCommand(args: string[]): Promise<void> {
-    if (args.length === 0) {
-      throw new Error('Devi specificare l\'ID della task. Uso: /complete <task_id>');
-    }
-
-    try {
-      const taskId = args[0];
-      
-      // Get task info before completing
-      const task = await this.context.todoistService.getTask(taskId);
-      await this.context.todoistService.completeTask(taskId);
-      
-      this.context.onOutput(`✅ **Task completata!**\n\n📝 ${task.content}\n🆔 ID: ${task.id}`);
-    } catch (error) {
-      throw new Error(`Impossibile completare la task: ${error instanceof Error ? error.message : 'Errore sconosciuto'}`);
-    }
-  }
-
-  private async handleTaskSummaryCommand(args: string[]): Promise<void> {
-    try {
-      const summary = await this.context.todoistService.getTaskSummary();
-      
-      let output = `📊 **Riassunto Task:**\n\n`;
-      output += `📋 Totale: ${summary.total}\n`;
-      output += `📅 Scadono oggi: ${summary.due_today}\n`;
-      output += `⚠️ In ritardo: ${summary.overdue}\n`;
-      output += `🔴 Alta priorità: ${summary.high_priority}\n`;
-      output += `✅ Completate oggi: ${summary.completed_today}\n`;
-
-      this.context.onOutput(output);
-    } catch (error) {
-      throw new Error(`Impossibile recuperare il riassunto: ${error instanceof Error ? error.message : 'Errore sconosciuto'}`);
-    }
-  }
-
-  private async handleSearchTasksCommand(args: string[]): Promise<void> {
-    if (args.length === 0) {
-      throw new Error('Devi specificare una query di ricerca. Uso: /search-tasks <query>');
-    }
-
-    try {
-      const query = args.join(' ');
-      const tasks = await this.context.todoistService.searchTasks(query);
-
-      if (tasks.length === 0) {
-        this.context.onOutput(`Nessuna task trovata per la query: "${query}"`);
-        return;
-      }
-
-      let output = `🔍 **Risultati ricerca per "${query}" (${tasks.length}):**\n\n`;
-      
-      for (const task of tasks.slice(0, 10)) { // Limit to 10 results
-        const priority = '🔴'.repeat(task.priority);
-        const dueInfo = task.due ? ` 📅 ${task.due.date}` : '';
-        output += `• ${priority} ${task.content}${dueInfo}\n  ID: ${task.id}\n\n`;
-      }
-
-      if (tasks.length > 10) {
-        output += `\n... e altre ${tasks.length - 10} task`;
-      }
-
-      this.context.onOutput(output);
-    } catch (error) {
-      throw new Error(`Errore nella ricerca: ${error instanceof Error ? error.message : 'Errore sconosciuto'}`);
-    }
-  }
 
   // Session Command Handlers
   private async handleSessionsCommand(args: string[]): Promise<void> {
@@ -546,9 +246,21 @@ export class CommandHandler {
         throw new Error('Nessuna sessione attiva da salvare.');
       }
 
+      if (currentSession.messages.length === 0) {
+        throw new Error('Impossibile salvare una sessione vuota (senza messaggi).');
+      }
+
       const newName = args.join(' ');
       if (newName) {
         currentSession.name = newName;
+      }
+
+      // Se la sessione è temporanea, la salviamo nel database
+      if (currentSession.isTemporary) {
+        currentSession.isTemporary = false;
+        const sessionToSave = { ...currentSession };
+        delete sessionToSave.isTemporary;
+        await this.context.databaseService.createSession(sessionToSave);
       }
 
       await this.context.sessionManager.saveSession(currentSession);
@@ -617,9 +329,9 @@ export class CommandHandler {
     }
 
     let output = `🆘 **Comandi disponibili:**\n\n`;
+    output += `💡 **Nota:** Per gestire task e progetti Todoist, usa il linguaggio naturale! L'AI gestirà automaticamente le operazioni.\n\n`;
     
     const categories = {
-      'Todoist': ['/tasks', '/projects', '/add-task', '/complete', '/task-summary', '/search-tasks'],
       'Sessioni': ['/sessions', '/new', '/save', '/load', '/delete-session'],
       'Utilità': ['/help', '/status', '/clear']
     };

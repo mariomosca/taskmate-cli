@@ -3,8 +3,10 @@ import React, { useState } from 'react';
 // @ts-ignore
 import { Box, Text, useInput } from 'ink';
 // @ts-ignore
+import TextInput from 'ink-text-input';
+// @ts-ignore
 import figures from 'figures';
-import { CommandMenu } from './CommandMenu';
+import { CommandMenu } from './CommandMenu.js';
 
 interface InputAreaProps {
   onSubmit: (input: string) => void;
@@ -25,27 +27,19 @@ export const InputArea: React.FC<InputAreaProps> = ({
 
   // Available commands (should match CommandMenu.tsx)
   const commands = [
-    // General commands
+    // General commands (più usati per primi)
     { name: 'help', description: 'Mostra questo aiuto', category: 'general' },
     { name: 'clear', description: 'Pulisci la chat', category: 'general' },
+    { name: 'status', description: 'Mostra stato sistema', category: 'general' },
     { name: 'exit', description: 'Esci dall\'applicazione', category: 'general' },
     
-    // Todoist commands
-    { name: 'tasks', description: 'Mostra task da Todoist', category: 'todoist' },
-    { name: 'projects', description: 'Mostra progetti da Todoist', category: 'todoist' },
-    { name: 'add-task', description: 'Aggiungi nuovo task', category: 'todoist' },
-    { name: 'complete', description: 'Completa task', category: 'todoist' },
-    
-    // Session commands
+    // Session commands (gestione sessioni)
     { name: 'sessions', description: 'Lista sessioni salvate', category: 'session' },
     { name: 'new', description: 'Crea nuova sessione', category: 'session' },
-    { name: 'search', description: 'Cerca nei messaggi', category: 'session' },
     { name: 'save', description: 'Salva sessione corrente', category: 'session' },
-    
-    // AI commands
-    { name: 'analyze', description: 'Analizza task con AI', category: 'ai' },
-    { name: 'suggest', description: 'Suggerimenti AI per produttività', category: 'ai' },
-    { name: 'summarize', description: 'Riassumi conversazione', category: 'ai' }
+    { name: 'load', description: 'Carica sessione esistente', category: 'session' },
+    { name: 'search', description: 'Cerca nei messaggi', category: 'session' },
+    { name: 'delete-session', description: 'Elimina sessione', category: 'session' }
   ];
 
   // Get the currently selected command for tab completion
@@ -62,6 +56,43 @@ export const InputArea: React.FC<InputAreaProps> = ({
     return null;
   };
 
+  // Handle input changes
+  const handleInputChange = (value: string) => {
+    setInput(value);
+    
+    // Show command menu if starts with /
+    if (value.startsWith('/')) {
+      setShowCommandMenu(true);
+    } else {
+      setShowCommandMenu(false);
+      setSelectedCommandIndex(0);
+    }
+  };
+
+  // Handle Enter key press
+  const handleInputSubmit = (value: string) => {
+    if (showCommandMenu) {
+      // If command menu is open, select the highlighted command
+      const selectedCommand = getSelectedCommand();
+      if (selectedCommand) {
+        // Add space after command to position cursor at the end
+        setInput('/' + selectedCommand + ' ');
+        setShowCommandMenu(false);
+        setSelectedCommandIndex(0);
+        return;
+      }
+    }
+    
+    // Normal input submission
+    if (value.trim()) {
+      handleSubmit(value.trim());
+      setInput('');
+      setShowCommandMenu(false);
+      setSelectedCommandIndex(0);
+    }
+  };
+
+  // Handle special keys for command menu navigation
   useInput((inputChar: string, key: any) => {
     if (disabled) return;
 
@@ -77,7 +108,8 @@ export const InputArea: React.FC<InputAreaProps> = ({
         // Tab autocompletion
         const selectedCommand = getSelectedCommand();
         if (selectedCommand) {
-          setInput('/' + selectedCommand);
+          // Add space after command to position cursor at the end
+          setInput('/' + selectedCommand + ' ');
           setShowCommandMenu(false);
           setSelectedCommandIndex(0);
         }
@@ -90,55 +122,13 @@ export const InputArea: React.FC<InputAreaProps> = ({
       }
       
       if (key.downArrow) {
-        setSelectedCommandIndex((prev: number) => prev + 1); // Will be clamped by CommandMenu
+        const commandFilter = input.startsWith('/') ? input.slice(1) : '';
+        const filteredCommands = commands.filter((cmd: any) => 
+          cmd.name.toLowerCase().includes(commandFilter.toLowerCase()) ||
+          cmd.description.toLowerCase().includes(commandFilter.toLowerCase())
+        );
+        setSelectedCommandIndex((prev: number) => Math.min(filteredCommands.length - 1, prev + 1));
         return;
-      }
-    }
-
-    if (key.return) {
-      // If command menu is open, select the highlighted command
-      if (showCommandMenu) {
-        const selectedCommand = getSelectedCommand();
-        if (selectedCommand) {
-          setInput('/' + selectedCommand);
-          setShowCommandMenu(false);
-          setSelectedCommandIndex(0);
-        }
-        return;
-      }
-      
-      // Normal input submission
-      if (input.trim()) {
-        handleSubmit(input.trim());
-        setInput('');
-        setShowCommandMenu(false);
-        setSelectedCommandIndex(0);
-      }
-      return;
-    }
-
-    if (key.backspace || key.delete) {
-      const newInput = input.slice(0, -1);
-      setInput(newInput);
-      
-      // Hide command menu if no longer starts with /
-      if (!newInput.startsWith('/')) {
-        setShowCommandMenu(false);
-        setSelectedCommandIndex(0);
-      }
-      return;
-    }
-
-    if (inputChar && !key.ctrl && !key.meta) {
-      const newInput = input + inputChar;
-      setInput(newInput);
-      
-      // Show command menu if starts with /
-      if (newInput.startsWith('/')) {
-        setShowCommandMenu(true);
-      } else if (!newInput.startsWith('/') && newInput.length > 0) {
-        setShowCommandMenu(false);
-        setSelectedCommandIndex(0);
       }
     }
   });
@@ -154,8 +144,6 @@ export const InputArea: React.FC<InputAreaProps> = ({
       onSubmit(value);
     }
   };
-
-  const displayInput = input + (!disabled ? '│' : '');
 
   const commandFilter = input.startsWith('/') ? input.slice(1) : '';
 
@@ -180,13 +168,13 @@ export const InputArea: React.FC<InputAreaProps> = ({
           <Text color={disabled ? "gray" : "cyan"}>
             {figures.arrowRight} 
           </Text>
-          <Text color={disabled ? "gray" : "white"}>
-            {displayInput || (
-              <Text color="gray" dimColor>
-                {placeholder}
-              </Text>
-            )}
-          </Text>
+          <TextInput
+            value={input}
+            placeholder={disabled ? placeholder : 'Scrivi un messaggio o usa / per i comandi...'}
+            onChange={handleInputChange}
+            onSubmit={handleInputSubmit}
+            showCursor={!disabled}
+          />
         </Box>
         
         <Box marginTop={0}>

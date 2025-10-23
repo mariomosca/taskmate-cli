@@ -1,6 +1,6 @@
 import React from 'react';
 import { Box, Text, useStdout } from 'ink';
-import { TodoistTask } from '../types/todoist';
+import { TodoistTask } from '../types/todoist.js';
 
 interface TaskTableProps {
   tasks: TodoistTask[];

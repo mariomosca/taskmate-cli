@@ -13,6 +13,8 @@ import {
   TodoistConfig,
   TodoistApiError,
   SyncResult,
+  SyncChanges,
+  SyncState,
   TaskSummary,
   ProjectSummary,
   QuickAddResult,
@@ -24,6 +26,7 @@ export class TodoistService {
   private client: AxiosInstance;
   private config: TodoistConfig;
   private lastSyncToken?: string;
+  private syncState: SyncState = {};
 
   constructor(config: TodoistConfig) {
     this.config = {
@@ -348,26 +351,200 @@ export class TodoistService {
   // Sync Operations
   async sync(): Promise<SyncResult> {
     try {
-      // For now, we'll implement a simple sync by fetching current data
-      const [tasks, projects] = await Promise.all([
+      // Fetch current data from Todoist
+      const [currentTasks, currentProjects] = await Promise.all([
         this.getTasks(),
         this.getProjects()
       ]);
 
-      const result: SyncResult = {
-        tasks_added: 0,
-        tasks_updated: tasks.length,
-        tasks_completed: 0,
-        projects_added: 0,
-        projects_updated: projects.length,
-        last_sync: new Date().toISOString()
+      // If this is the first sync, just cache the data
+      if (!this.syncState.cached_tasks || !this.syncState.cached_projects) {
+        this.syncState = {
+          last_sync_token: Date.now().toString(),
+          last_sync_timestamp: new Date().toISOString(),
+          cached_tasks: currentTasks,
+          cached_projects: currentProjects
+        };
+
+        const result: SyncResult = {
+           tasks_added: currentTasks.length,
+           tasks_updated: 0,
+           tasks_completed: 0,
+           projects_added: currentProjects.length,
+           projects_updated: 0,
+           sync_token: this.syncState.last_sync_token!,
+           last_sync: this.syncState.last_sync_timestamp!
+         };
+
+        this.lastSyncToken = this.syncState.last_sync_token;
+        return result;
+      }
+
+      // Compare with cached data to find changes
+      const changes = this.detectChanges(
+        this.syncState.cached_tasks,
+        this.syncState.cached_projects,
+        currentTasks,
+        currentProjects
+      );
+
+      // Update cache
+      this.syncState = {
+        last_sync_token: Date.now().toString(),
+        last_sync_timestamp: new Date().toISOString(),
+        cached_tasks: currentTasks,
+        cached_projects: currentProjects
       };
 
-      this.lastSyncToken = Date.now().toString();
+      const result: SyncResult = {
+         tasks_added: changes.tasks.added.length,
+         tasks_updated: changes.tasks.updated.length,
+         tasks_completed: changes.tasks.completed.length,
+         projects_added: changes.projects.added.length,
+         projects_updated: changes.projects.updated.length,
+         sync_token: this.syncState.last_sync_token!,
+         last_sync: this.syncState.last_sync_timestamp!
+       };
+
+      this.lastSyncToken = this.syncState.last_sync_token;
       return result;
     } catch (error) {
       throw this.handleApiError(error as AxiosError);
     }
+  }
+
+  /**
+   * Get detailed changes since last sync
+   */
+  async getChangesSinceLastSync(): Promise<SyncChanges | null> {
+    try {
+      if (!this.syncState.cached_tasks || !this.syncState.cached_projects) {
+        // No previous sync data available
+        return null;
+      }
+
+      const [currentTasks, currentProjects] = await Promise.all([
+        this.getTasks(),
+        this.getProjects()
+      ]);
+
+      return this.detectChanges(
+        this.syncState.cached_tasks,
+        this.syncState.cached_projects,
+        currentTasks,
+        currentProjects
+      );
+    } catch (error) {
+      throw this.handleApiError(error as AxiosError);
+    }
+  }
+
+  /**
+   * Detect changes between cached and current data
+   */
+  private detectChanges(
+    cachedTasks: TodoistTask[],
+    cachedProjects: TodoistProject[],
+    currentTasks: TodoistTask[],
+    currentProjects: TodoistProject[]
+  ): SyncChanges {
+    const changes: SyncChanges = {
+      tasks: {
+        added: [],
+        updated: [],
+        completed: [],
+        deleted: []
+      },
+      projects: {
+        added: [],
+        updated: [],
+        deleted: []
+      },
+      sync_token: Date.now().toString(),
+      timestamp: new Date().toISOString()
+    };
+
+    // Create maps for efficient lookup
+    const cachedTasksMap = new Map(cachedTasks.map(t => [t.id, t]));
+    const cachedProjectsMap = new Map(cachedProjects.map(p => [p.id, p]));
+    const currentTasksMap = new Map(currentTasks.map(t => [t.id, t]));
+    const currentProjectsMap = new Map(currentProjects.map(p => [p.id, p]));
+
+    // Detect task changes
+    for (const currentTask of currentTasks) {
+      const cachedTask = cachedTasksMap.get(currentTask.id);
+      
+      if (!cachedTask) {
+        // New task
+        changes.tasks.added.push(currentTask);
+      } else {
+        // Check if task was completed
+        if (!cachedTask.is_completed && currentTask.is_completed) {
+          changes.tasks.completed.push(currentTask);
+        }
+        // Check if task was updated (compare relevant fields)
+        else if (this.hasTaskChanged(cachedTask, currentTask)) {
+          changes.tasks.updated.push(currentTask);
+        }
+      }
+    }
+
+    // Detect deleted tasks
+    for (const cachedTask of cachedTasks) {
+      if (!currentTasksMap.has(cachedTask.id)) {
+        changes.tasks.deleted.push(cachedTask.id);
+      }
+    }
+
+    // Detect project changes
+    for (const currentProject of currentProjects) {
+      const cachedProject = cachedProjectsMap.get(currentProject.id);
+      
+      if (!cachedProject) {
+        // New project
+        changes.projects.added.push(currentProject);
+      } else if (this.hasProjectChanged(cachedProject, currentProject)) {
+        // Updated project
+        changes.projects.updated.push(currentProject);
+      }
+    }
+
+    // Detect deleted projects
+    for (const cachedProject of cachedProjects) {
+      if (!currentProjectsMap.has(cachedProject.id)) {
+        changes.projects.deleted.push(cachedProject.id);
+      }
+    }
+
+    return changes;
+  }
+
+  /**
+   * Check if a task has changed (excluding completion status)
+   */
+  private hasTaskChanged(cached: TodoistTask, current: TodoistTask): boolean {
+    return (
+      cached.content !== current.content ||
+      cached.description !== current.description ||
+      cached.priority !== current.priority ||
+      cached.project_id !== current.project_id ||
+      cached.section_id !== current.section_id ||
+      JSON.stringify(cached.labels) !== JSON.stringify(current.labels) ||
+      JSON.stringify(cached.due) !== JSON.stringify(current.due)
+    );
+  }
+
+  /**
+   * Check if a project has changed
+   */
+  private hasProjectChanged(cached: TodoistProject, current: TodoistProject): boolean {
+    return (
+      cached.name !== current.name ||
+      cached.color !== current.color ||
+      cached.is_favorite !== current.is_favorite ||
+      cached.view_style !== current.view_style ||
+      cached.parent_id !== current.parent_id
+    );
   }
 
   // Utility Methods

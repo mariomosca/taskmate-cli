@@ -123,7 +123,6 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
         <Text color="cyan" bold>
           💬 {currentSession?.name || 'Nuova Chat'} 
         </Text>
-        <Text color="gray"> | Provider: {currentSession?.llmProvider || 'claude'}</Text>
         <Text color="gray"> | ESC per uscire</Text>
       </Box>
 

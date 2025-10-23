@@ -1,22 +1,33 @@
-import { Message } from '../types';
-import { LLMService } from './LLMService';
-import { PromptProcessor, SUMMARIZE_SESSION } from '../prompts/templates';
+import { Message, AppConfig } from '../types/index.js';
+import { LLMService } from './LLMService.js';
+import { DatabaseService } from './DatabaseService.js';
+import { TodoistAIService } from './TodoistAIService.js';
+import { PromptProcessor, SUMMARIZE_SESSION } from '../prompts/templates.js';
 
 /**
  * Gestisce il contesto delle conversazioni e il token counting
  */
 export class ContextManager {
   private llmService: LLMService;
+  private todoistAIService?: TodoistAIService;
   private maxTokens: number;
   private warningThreshold: number; // Percentuale di warning (es. 80%)
   private criticalThreshold: number; // Percentuale critica per summarize (es. 90%)
 
-  constructor(llmService: LLMService) {
+  constructor(llmService: LLMService, todoistAIService?: TodoistAIService) {
     this.llmService = llmService;
+    this.todoistAIService = todoistAIService;
     // Prende i max tokens dalla configurazione, con fallback
     this.maxTokens = parseInt(process.env.CLAUDE_MAX_TOKENS || '8192');
     this.warningThreshold = 0.8; // 80%
     this.criticalThreshold = 0.9; // 90%
+  }
+
+  /**
+   * Imposta il servizio Todoist AI
+   */
+  public setTodoistAIService(todoistAIService: TodoistAIService): void {
+    this.todoistAIService = todoistAIService;
   }
 
   /**
@@ -172,6 +183,71 @@ export class ContextManager {
         finalTokens,
         wasSummarized: result.wasSummarized,
         status: finalStatus.status
+      }
+    };
+  }
+
+  /**
+   * Prepara il contesto arricchito con informazioni Todoist per l'AI
+   */
+  public async prepareEnhancedContext(messages: Message[]): Promise<{
+    enhancedMessages: Message[];
+    contextInfo: {
+      originalTokens: number;
+      finalTokens: number;
+      wasSummarized: boolean;
+      status: 'safe' | 'warning' | 'critical';
+      hasTodoistContext: boolean;
+    };
+  }> {
+    // Prima ottimizza il contesto normale
+    const optimizedResult = await this.prepareOptimizedContext(messages);
+    let enhancedMessages = [...optimizedResult.optimizedMessages];
+    let hasTodoistContext = false;
+
+    // Aggiungi contesto Todoist se disponibile
+    if (this.todoistAIService) {
+      try {
+        const todoistContext = await this.todoistAIService.getTodoistContext();
+        
+        // Crea un messaggio di sistema con il contesto Todoist
+         const todoistContextMessage: Message = {
+           id: `todoist-context-${Date.now()}`,
+           role: 'system',
+           content: `[CONTESTO TODOIST ATTUALE]\n${todoistContext}\n\n[STRUMENTI DISPONIBILI]\nHai accesso a strumenti per gestire task e progetti in Todoist. Usa questi strumenti quando l'utente vuole creare, modificare, completare o cercare task/progetti.`,
+           timestamp: new Date(),
+           metadata: {
+             sessionId: messages[0]?.metadata?.sessionId || 'default'
+           }
+         };
+
+        // Inserisci il contesto Todoist all'inizio (dopo eventuali riassunti)
+        const systemMessages = enhancedMessages.filter(m => m.role === 'system');
+        const otherMessages = enhancedMessages.filter(m => m.role !== 'system');
+        
+        enhancedMessages = [
+          ...systemMessages,
+          todoistContextMessage,
+          ...otherMessages
+        ];
+
+        hasTodoistContext = true;
+      } catch (error) {
+        console.warn('Errore nel recupero del contesto Todoist:', error);
+      }
+    }
+
+    const finalTokens = this.calculateTotalTokens(enhancedMessages);
+    const finalStatus = this.getContextStatus(enhancedMessages);
+
+    return {
+      enhancedMessages,
+      contextInfo: {
+        originalTokens: optimizedResult.contextInfo.originalTokens,
+        finalTokens,
+        wasSummarized: optimizedResult.contextInfo.wasSummarized,
+        status: finalStatus.status,
+        hasTodoistContext
       }
     };
   }

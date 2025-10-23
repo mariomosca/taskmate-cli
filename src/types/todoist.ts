@@ -142,8 +142,31 @@ export interface SyncResult {
   tasks_completed: number;
   projects_added: number;
   projects_updated: number;
-  sync_token?: string;
+  sync_token: string;
   last_sync: string;
+}
+
+export interface SyncChanges {
+  tasks: {
+    added: TodoistTask[];
+    updated: TodoistTask[];
+    completed: TodoistTask[];
+    deleted: string[]; // IDs of deleted tasks
+  };
+  projects: {
+    added: TodoistProject[];
+    updated: TodoistProject[];
+    deleted: string[]; // IDs of deleted projects
+  };
+  sync_token: string;
+  timestamp: string;
+}
+
+export interface SyncState {
+  last_sync_token?: string;
+  last_sync_timestamp?: string;
+  cached_tasks?: TodoistTask[];
+  cached_projects?: TodoistProject[];
 }
 
 // Service Configuration

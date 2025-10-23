@@ -7,7 +7,7 @@ import figures from 'figures';
 interface Command {
   name: string;
   description: string;
-  category: 'general' | 'todoist' | 'session' | 'ai';
+  category: 'general' | 'session';
 }
 
 interface CommandMenuProps {
@@ -18,27 +18,19 @@ interface CommandMenuProps {
 }
 
 const commands: Command[] = [
-  // General commands
+  // General commands (più usati per primi)
   { name: 'help', description: 'Mostra questo aiuto', category: 'general' },
   { name: 'clear', description: 'Pulisci la chat', category: 'general' },
+  { name: 'status', description: 'Mostra stato sistema', category: 'general' },
   { name: 'exit', description: 'Esci dall\'applicazione', category: 'general' },
   
-  // Todoist commands
-  { name: 'tasks', description: 'Mostra task da Todoist', category: 'todoist' },
-  { name: 'projects', description: 'Mostra progetti da Todoist', category: 'todoist' },
-  { name: 'add-task', description: 'Aggiungi nuovo task', category: 'todoist' },
-  { name: 'complete', description: 'Completa task', category: 'todoist' },
-  
-  // Session commands
+  // Session commands (gestione sessioni)
   { name: 'sessions', description: 'Lista sessioni salvate', category: 'session' },
   { name: 'new', description: 'Crea nuova sessione', category: 'session' },
-  { name: 'search', description: 'Cerca nei messaggi', category: 'session' },
   { name: 'save', description: 'Salva sessione corrente', category: 'session' },
-  
-  // AI commands
-  { name: 'analyze', description: 'Analizza task con AI', category: 'ai' },
-  { name: 'suggest', description: 'Suggerimenti AI per produttività', category: 'ai' },
-  { name: 'summarize', description: 'Riassumi conversazione', category: 'ai' }
+  { name: 'load', description: 'Carica sessione esistente', category: 'session' },
+  { name: 'search', description: 'Cerca nei messaggi', category: 'session' },
+  { name: 'delete-session', description: 'Elimina sessione', category: 'session' }
 ];
 
 export const CommandMenu = ({ isVisible, selectedIndex, filter, onTabComplete }: CommandMenuProps) => {
@@ -70,10 +62,8 @@ export const CommandMenu = ({ isVisible, selectedIndex, filter, onTabComplete }:
   const getCategoryIcon = (category: string) => {
     switch (category) {
       case 'general': return '⚙️';
-      case 'todoist': return '✅';
       case 'session': return '💾';
-      case 'ai': return '🤖';
-      default: return '•';
+      default: return '📝';
     }
   };
 
@@ -85,8 +75,8 @@ export const CommandMenu = ({ isVisible, selectedIndex, filter, onTabComplete }:
         </Text>
       </Box>
       
-      <Box flexDirection="column" height={8}>
-        {filteredCommands.slice(0, 8).map((command: Command, index: number) => (
+      <Box flexDirection="column">
+        {filteredCommands.map((command: Command, index: number) => (
           <Box key={command.name} marginLeft={2}>
             <Text color={index === selectedIndex ? 'black' : getCategoryColor(command.category)}
                   backgroundColor={index === selectedIndex ? 'cyan' : undefined}>
@@ -95,14 +85,6 @@ export const CommandMenu = ({ isVisible, selectedIndex, filter, onTabComplete }:
             </Text>
           </Box>
         ))}
-        
-        {filteredCommands.length > 8 && (
-          <Box marginLeft={2}>
-            <Text color="gray">
-              ... e altri {filteredCommands.length - 8} comandi
-            </Text>
-          </Box>
-        )}
       </Box>
       
       <Box marginTop={1}>

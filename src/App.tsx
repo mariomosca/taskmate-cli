@@ -8,6 +8,7 @@ import { ContextIndicator } from './components/ContextIndicator.js';
 import { SessionManager } from './services/SessionManager.js';
 import { llmService } from './services/LLMService.js';
 import { TodoistService } from './services/TodoistService.js';
+import { TodoistAIService } from './services/TodoistAIService.js';
 import { DatabaseService } from './services/DatabaseService.js';
 import { CommandHandler, CommandContext, LoadingStep } from './services/CommandHandler.js';
 import { Message } from './types/index.js';
@@ -21,11 +22,21 @@ export const App: React.FC = () => {
   const [showSplash, setShowSplash] = useState(true);
   const [splashCompleted, setSplashCompleted] = useState(false);
   const [databaseService] = useState(() => new DatabaseService());
-  const [sessionManager] = useState(() => new SessionManager(undefined, databaseService));
+  
   const [todoistService] = useState(() => new TodoistService({
     apiKey: process.env.TODOIST_API_KEY || '',
     baseUrl: 'https://api.todoist.com/rest/v2'
   }));
+  
+  const [todoistAIService] = useState(() => new TodoistAIService(todoistService));
+  
+  const [sessionManager] = useState(() => {
+    const manager = new SessionManager(undefined, databaseService);
+    // Configure LLMService and ContextManager with TodoistAIService
+    llmService.setTodoistAIService(todoistAIService);
+    manager.getContextManager().setTodoistAIService(todoistAIService);
+    return manager;
+  });
 
   const addSystemMessage = async (content: string) => {
     const message: Message = {
@@ -135,6 +146,7 @@ export const App: React.FC = () => {
     if (hasMore) {
       const nextPage = currentPage + 1;
       setCurrentPage(nextPage);
+      setSelectedSessionIndex(0); // Reset selection to first element
       loadSessionsForSelection(nextPage);
     }
   };
@@ -143,6 +155,7 @@ export const App: React.FC = () => {
     if (currentPage > 0) {
       const prevPage = currentPage - 1;
       setCurrentPage(prevPage);
+      setSelectedSessionIndex(0); // Reset selection to first element
       loadSessionsForSelection(prevPage);
     }
   };
@@ -230,7 +243,7 @@ export const App: React.FC = () => {
         }
       ];
       
-      const response = await llmService.chat(messages);
+      const response = await llmService.chatWithTools(messages);
       
       // Add AI response
       const aiMessage: Message = {

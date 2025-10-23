@@ -1,8 +1,7 @@
 import React from 'react';
 import { Box, Text } from 'ink';
-import { Message } from '../types';
+import { Message } from '../types/index.js';
 import { LoadingStep } from '../services/CommandHandler.js';
-import { ProgressiveLoader } from './ProgressiveLoader.js';
 import figures from 'figures';
 
 interface ContentAreaProps {
@@ -12,12 +11,14 @@ interface ContentAreaProps {
   loadingSteps?: LoadingStep[];
 }
 
-export const ContentArea: React.FC<ContentAreaProps> = ({
+
+
+export const ContentArea = ({
   messages,
   isLoading = false,
   loadingMessage = 'Elaborazione in corso...',
   loadingSteps
-}) => {
+}: ContentAreaProps) => {
   const renderMessage = (message: Message) => {
     const isUser = message.role === 'user';
     const icon = isUser ? figures.arrowRight : '';
@@ -51,7 +52,31 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
   const renderLoadingIndicator = () => (
     <Box flexDirection="row" alignItems="center" marginBottom={1}>
       {loadingSteps && loadingSteps.length > 0 ? (
-        <ProgressiveLoader steps={loadingSteps} />
+        <Box flexDirection="column">
+          {loadingSteps.map((step) => (
+            <Box key={step.id} flexDirection="row" alignItems="center">
+              {step.status === 'loading' && (
+                <Text color="blue">{figures.ellipsis} </Text>
+              )}
+              {step.status === 'completed' && (
+                <Text color="green">✓ </Text>
+              )}
+              {step.status === 'error' && (
+                <Text color="red">✗ </Text>
+              )}
+              {step.status === 'pending' && (
+                <Text color="gray">○ </Text>
+              )}
+              <Text color={
+                step.status === 'loading' ? 'blue' : 
+                step.status === 'completed' ? 'green' : 
+                step.status === 'error' ? 'red' : 'gray'
+              }>
+                {step.message}
+              </Text>
+            </Box>
+          ))}
+        </Box>
       ) : (
         <>
           <Text color="yellow">{figures.ellipsis} </Text>

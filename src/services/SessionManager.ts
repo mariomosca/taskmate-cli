@@ -3,7 +3,7 @@ import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { Session, Message, AppConfig } from '../types/index.js';
 import { llmService } from './LLMService.js';
-import { ContextManager } from './ContextManager';
+import { ContextManager } from './ContextManager.js';
 import { DatabaseService } from './DatabaseService.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -36,11 +36,14 @@ export class SessionManager {
 
   // Session Management
   async createSession(name?: string, llmProvider: 'claude' | 'gemini' = 'claude'): Promise<Session> {
-    const sessionData = {
+    const sessionData: Session = {
       id: this.generateSessionId(),
       name: name || `Sessione ${new Date().toLocaleDateString()}`,
       messages: [],
       llmProvider,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      isTemporary: true, // Sessione temporanea, non ancora salvata nel database
       metadata: {
         totalMessages: 0,
         totalTokens: 0,
@@ -48,9 +51,9 @@ export class SessionManager {
       }
     };
 
-    const session = await this.db.createSession(sessionData);
-    this.currentSession = session;
-    return session;
+    // Non salviamo immediatamente nel database, la sessione sarà salvata al primo messaggio
+    this.currentSession = sessionData;
+    return sessionData;
   }
 
   async loadSession(sessionId: string): Promise<Session | null> {
@@ -71,9 +74,9 @@ export class SessionManager {
 
   async saveSession(session: Session): Promise<void> {
     try {
-      // Non salvare sessioni con 0 messaggi
-      if (session.messages.length === 0) {
-        console.log(`Skipping save for empty session ${session.id}`);
+      // Non salvare sessioni temporanee o con 0 messaggi
+      if (session.isTemporary || session.messages.length === 0) {
+        console.log(`Skipping save for ${session.isTemporary ? 'temporary' : 'empty'} session ${session.id}`);
         return;
       }
 
@@ -127,6 +130,15 @@ export class SessionManager {
   async addMessage(message: Message): Promise<void> {
     if (!this.currentSession) {
       throw new Error('No active session');
+    }
+
+    // Se la sessione è temporanea (non ancora salvata), la salviamo prima nel database
+    if (this.currentSession.isTemporary) {
+      // Rimuoviamo il flag temporaneo e salviamo la sessione
+      this.currentSession.isTemporary = false;
+      const sessionToSave = { ...this.currentSession };
+      delete sessionToSave.isTemporary; // Rimuoviamo il flag prima di salvare
+      await this.db.createSession(sessionToSave);
     }
 
     // Add message to database
@@ -221,7 +233,9 @@ export class SessionManager {
       .map(session => ({
         id: session.id,
         name: session.name,
-        lastActivity: session.metadata!.lastActivity,
+        lastActivity: session.metadata?.lastActivity 
+          ? new Date(session.metadata.lastActivity) 
+          : session.updatedAt,
         messageCount: session.messages.length
       }));
 
@@ -244,7 +258,7 @@ export class SessionManager {
       const result = await this.contextManager.prepareOptimizedContext(session.messages);
       
       // Aggiorna la sessione con i messaggi ottimizzati se è stata fatta una summarizzazione
-      if (result.contextInfo.wasSummarized) {
+      if (result.contextInfo.wasSummarized && session.messages.length > 0) {
         session.messages = result.optimizedMessages;
         await this.saveSession(session);
       }
@@ -310,7 +324,12 @@ export class SessionManager {
     if (!this.currentSession) {
       return null;
     }
+    
     return this.contextManager.getContextDescription(this.currentSession.messages);
+  }
+
+  getContextManager(): ContextManager {
+    return this.contextManager;
   }
 
   async getLastSession(): Promise<Session | null> {

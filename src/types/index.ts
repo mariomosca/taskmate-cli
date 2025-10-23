@@ -23,6 +23,7 @@ export interface Session {
   updatedAt: Date;
   messages: Message[];
   llmProvider: 'claude' | 'gemini';
+  isTemporary?: boolean; // Flag per sessioni non ancora salvate nel database
   metadata?: {
     totalMessages: number;
     totalTokens: number;
