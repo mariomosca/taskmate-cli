@@ -7,6 +7,10 @@ export interface Message {
     llmProvider?: string;
     processingTime?: number;
     tokens?: number;
+    usage?: {
+      input_tokens: number;
+      output_tokens: number;
+    };
     sessionId?: string;
     sessionName?: string;
   };

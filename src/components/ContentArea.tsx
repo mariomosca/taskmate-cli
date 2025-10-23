@@ -1,18 +1,22 @@
 import React from 'react';
 import { Box, Text } from 'ink';
 import { Message } from '../types';
+import { LoadingStep } from '../services/CommandHandler.js';
+import { ProgressiveLoader } from './ProgressiveLoader.js';
 import figures from 'figures';
 
 interface ContentAreaProps {
   messages: Message[];
   isLoading?: boolean;
   loadingMessage?: string;
+  loadingSteps?: LoadingStep[];
 }
 
 export const ContentArea: React.FC<ContentAreaProps> = ({
   messages,
   isLoading = false,
-  loadingMessage = 'Elaborazione in corso...'
+  loadingMessage = 'Elaborazione in corso...',
+  loadingSteps
 }) => {
   const renderMessage = (message: Message) => {
     const isUser = message.role === 'user';
@@ -49,8 +53,14 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
 
   const renderLoadingIndicator = () => (
     <Box flexDirection="row" alignItems="center" marginBottom={1}>
-      <Text color="yellow">{figures.ellipsis} </Text>
-      <Text color="yellow">{loadingMessage}</Text>
+      {loadingSteps && loadingSteps.length > 0 ? (
+        <ProgressiveLoader steps={loadingSteps} />
+      ) : (
+        <>
+          <Text color="yellow">{figures.ellipsis} </Text>
+          <Text color="yellow">{loadingMessage}</Text>
+        </>
+      )}
     </Box>
   );
 

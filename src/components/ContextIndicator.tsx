@@ -42,19 +42,19 @@ export const ContextIndicator = ({
           position: 'absolute' as const,
           top: 0,
           right: 0,
-          justifyContent: 'flex-end'
+          justifyContent: 'flex-end' as const
         };
       case 'bottom-right':
         return {
           position: 'absolute' as const,
           bottom: 0,
           right: 0,
-          justifyContent: 'flex-end'
+          justifyContent: 'flex-end' as const
         };
       case 'above-input':
       default:
         return {
-          justifyContent: 'flex-end',
+          justifyContent: 'flex-end' as const,
           marginBottom: -1
         };
     }

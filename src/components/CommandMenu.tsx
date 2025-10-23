@@ -85,7 +85,7 @@ export const CommandMenu = ({ isVisible, selectedIndex, filter, onTabComplete }:
         </Text>
       </Box>
       
-      <Box flexDirection="column" maxHeight={8}>
+      <Box flexDirection="column" height={8}>
         {filteredCommands.slice(0, 8).map((command: Command, index: number) => (
           <Box key={command.name} marginLeft={2}>
             <Text color={index === selectedIndex ? 'black' : getCategoryColor(command.category)}

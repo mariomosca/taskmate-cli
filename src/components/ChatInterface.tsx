@@ -53,7 +53,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
       // Prepara i messaggi per l'LLM
       const llmMessages = state.messages.concat(userMessage).map(msg => ({
-        role: msg.role as 'user' | 'assistant',
+        role: msg.role as 'user' | 'assistant' | 'system',
         content: msg.content
       }));
 

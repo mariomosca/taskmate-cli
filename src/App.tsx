@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Box, useApp } from 'ink';
 import { SplashScreen } from './components/SplashScreen.js';
 import { InputArea } from './components/InputArea.js';
@@ -7,6 +7,9 @@ import { SessionSelector } from './components/SessionSelector.js';
 import { ContextIndicator } from './components/ContextIndicator.js';
 import { SessionManager } from './services/SessionManager.js';
 import { llmService } from './services/LLMService.js';
+import { TodoistService } from './services/TodoistService.js';
+import { DatabaseService } from './services/DatabaseService.js';
+import { CommandHandler, CommandContext, LoadingStep } from './services/CommandHandler.js';
 import { Message } from './types/index.js';
 
 export const App: React.FC = () => {
@@ -14,9 +17,38 @@ export const App: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState('');
+  const [loadingSteps, setLoadingSteps] = useState<LoadingStep[]>([]);
   const [showSplash, setShowSplash] = useState(true);
   const [splashCompleted, setSplashCompleted] = useState(false);
-  const [sessionManager] = useState(() => new SessionManager());
+  const [databaseService] = useState(() => new DatabaseService());
+  const [sessionManager] = useState(() => new SessionManager(undefined, databaseService));
+  const [todoistService] = useState(() => new TodoistService({
+    apiKey: process.env.TODOIST_API_KEY || '',
+    baseUrl: 'https://api.todoist.com/rest/v2'
+  }));
+
+  const addSystemMessage = (content: string) => {
+    const message: Message = {
+      id: Date.now().toString(),
+      role: 'system',
+      content,
+      timestamp: new Date()
+    };
+    setMessages(prev => [...prev, message]);
+  };
+
+  const [commandHandler] = useState(() => {
+    const context: CommandContext = {
+      todoistService,
+      sessionManager,
+      databaseService,
+      llmService,
+      onOutput: (message: string) => addSystemMessage(message),
+      onError: (error: string) => addSystemMessage(`❌ ${error}`),
+      onProgressUpdate: (steps: LoadingStep[]) => setLoadingSteps(steps)
+    };
+    return new CommandHandler(context);
+  });
   
   // Session resume states
   const [showSessionSelector, setShowSessionSelector] = useState(false);
@@ -162,16 +194,6 @@ export const App: React.FC = () => {
     }
   }, [messages.length, showSplash, showSessionSelector]);
 
-  const addSystemMessage = (content: string) => {
-    const message: Message = {
-      id: Date.now().toString(),
-      role: 'system',
-      content,
-      timestamp: new Date()
-    };
-    setMessages(prev => [...prev, message]);
-  };
-
   const handleSubmit = async (input: string) => {
     if (!input.trim()) return;
 
@@ -237,29 +259,38 @@ export const App: React.FC = () => {
   };
 
   const handleSlashCommand = async (command: string, args: string[]) => {
+    // Handle special UI commands that don't go through CommandHandler
     switch (command) {
-      case 'help':
-        addSystemMessage('📋 Comandi disponibili:\n/help - Mostra aiuto\n/clear - Pulisci chat\n/exit - Esci\n/sessions - Lista sessioni\n/new - Nuova sessione');
-        break;
       case 'clear':
         setMessages([]);
-        break;
+        return;
       case 'exit':
         exit();
-        break;
+        return;
       case 'sessions':
         await loadSessionsForSelection();
-        break;
-      case 'new':
-        setMessages([]);
-        await sessionManager.createSession(
-          `Sessione ${new Date().toLocaleDateString()}`,
-          'claude'
-        );
-        addSystemMessage('✅ Nuova sessione creata');
-        break;
-      default:
-        addSystemMessage(`❌ Comando sconosciuto: /${command}`);
+        return;
+    }
+
+    try {
+      // Set loading state for progressive commands
+      setIsLoading(true);
+      setLoadingSteps([]);
+
+      // Use CommandHandler for all other commands
+      const fullCommand = `/${command} ${args.join(' ')}`.trim();
+      const result = await commandHandler.executeCommand(fullCommand);
+      
+      if (!result.success) {
+        addSystemMessage(result.message);
+      } else if (result.message) {
+        // Show success message if provided
+        addSystemMessage(result.message);
+      }
+    } finally {
+      // Clear loading state
+      setIsLoading(false);
+      setLoadingSteps([]);
     }
   };
 
@@ -292,6 +323,7 @@ export const App: React.FC = () => {
               messages={messages}
               isLoading={isLoading}
               loadingMessage={loadingMessage}
+              loadingSteps={loadingSteps}
             />
           )}
         </Box>

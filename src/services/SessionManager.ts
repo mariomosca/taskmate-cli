@@ -4,6 +4,7 @@ import { fileURLToPath } from 'url';
 import { Session, Message, AppConfig } from '../types/index.js';
 import { llmService } from './LLMService.js';
 import { ContextManager } from './ContextManager';
+import { DatabaseService } from './DatabaseService.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -13,12 +14,14 @@ export class SessionManager {
   private configPath: string;
   private currentSession: Session | null = null;
   private contextManager: ContextManager;
+  private db: DatabaseService;
 
-  constructor(dataDir?: string) {
+  constructor(dataDir?: string, dbService?: DatabaseService) {
     const baseDir = dataDir || join(__dirname, '../../data');
     this.sessionsDir = join(baseDir, 'sessions');
     this.configPath = join(baseDir, 'config.json');
     this.contextManager = new ContextManager(llmService);
+    this.db = dbService || new DatabaseService();
     this.ensureDirectories();
   }
 
@@ -33,11 +36,9 @@ export class SessionManager {
 
   // Session Management
   async createSession(name?: string, llmProvider: 'claude' | 'gemini' = 'claude'): Promise<Session> {
-    const session: Session = {
+    const sessionData = {
       id: this.generateSessionId(),
       name: name || `Sessione ${new Date().toLocaleDateString()}`,
-      createdAt: new Date(),
-      updatedAt: new Date(),
       messages: [],
       llmProvider,
       metadata: {
@@ -47,25 +48,18 @@ export class SessionManager {
       }
     };
 
-    await this.saveSession(session);
+    const session = await this.db.createSession(sessionData);
     this.currentSession = session;
     return session;
   }
 
   async loadSession(sessionId: string): Promise<Session | null> {
     try {
-      const sessionPath = join(this.sessionsDir, `${sessionId}.json`);
-      const data = await fs.readFile(sessionPath, 'utf-8');
-      const session = JSON.parse(data);
+      const session = await this.db.getSession(sessionId);
       
-      // Convert date strings back to Date objects
-      session.createdAt = new Date(session.createdAt);
-      session.updatedAt = new Date(session.updatedAt);
-      session.metadata.lastActivity = new Date(session.metadata.lastActivity);
-      session.messages = session.messages.map((msg: any) => ({
-        ...msg,
-        timestamp: new Date(msg.timestamp)
-      }));
+      // Load messages for the session
+      const messages = await this.db.getSessionMessages(sessionId);
+      session.messages = messages;
 
       this.currentSession = session;
       return session;
@@ -83,15 +77,16 @@ export class SessionManager {
         return;
       }
 
-      session.updatedAt = new Date();
-      session.metadata = {
+      const updatedMetadata = {
         totalMessages: session.messages.length,
         totalTokens: session.metadata?.totalTokens || 0,
         lastActivity: new Date()
       };
 
-      const sessionPath = join(this.sessionsDir, `${session.id}.json`);
-      await fs.writeFile(sessionPath, JSON.stringify(session, null, 2));
+      await this.db.updateSession(session.id, {
+        name: session.name,
+        metadata: updatedMetadata
+      });
     } catch (error) {
       console.error(`Error saving session ${session.id}:`, error);
     }
@@ -99,23 +94,14 @@ export class SessionManager {
 
   async listSessions(): Promise<Session[]> {
     try {
-      const files = await fs.readdir(this.sessionsDir);
-      const sessions: Session[] = [];
-
-      for (const file of files) {
-        if (file.endsWith('.json')) {
-          const sessionId = file.replace('.json', '');
-          const session = await this.loadSession(sessionId);
-          if (session) {
-            sessions.push(session);
-          }
-        }
+      const sessions = await this.db.getAllSessions();
+      
+      // Load messages for each session (optional - could be lazy loaded)
+      for (const session of sessions) {
+        session.messages = await this.db.getSessionMessages(session.id);
       }
 
-      // Sort by last activity (most recent first)
-      return sessions.sort((a, b) => 
-        b.metadata!.lastActivity.getTime() - a.metadata!.lastActivity.getTime()
-      );
+      return sessions;
     } catch (error) {
       console.error('Error listing sessions:', error);
       return [];
@@ -124,8 +110,7 @@ export class SessionManager {
 
   async deleteSession(sessionId: string): Promise<boolean> {
     try {
-      const sessionPath = join(this.sessionsDir, `${sessionId}.json`);
-      await fs.unlink(sessionPath);
+      await this.db.deleteSession(sessionId);
       
       if (this.currentSession?.id === sessionId) {
         this.currentSession = null;
@@ -144,7 +129,13 @@ export class SessionManager {
       throw new Error('No active session');
     }
 
+    // Add message to database
+    await this.db.addMessage(this.currentSession.id, message);
+    
+    // Update current session in memory
     this.currentSession.messages.push(message);
+    
+    // Update session metadata
     await this.saveSession(this.currentSession);
   }
 
