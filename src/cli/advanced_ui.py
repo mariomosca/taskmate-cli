@@ -40,8 +40,7 @@ class AdvancedTerminalUI:
         self.command_count = 0
         self.session_active = True
         
-        # Output buffer for chat history
-        self.output_lines: List[FormattedText] = []
+        # Output buffer for chat history (now handled by prompt_toolkit Buffer)
         
         # Scroll state
         self.output_focused = False
@@ -86,18 +85,24 @@ class AdvancedTerminalUI:
             height=1
         )
         
-        # Output area (top, scrollable)
-        self.output_control = FormattedTextControl(
-            text=self.get_output_text,
-            focusable=False,
-            show_cursor=False
+        # Output area (top, scrollable) - usando Buffer per scroll corretto
+        self.output_buffer = Buffer(
+            read_only=True,
+            multiline=True
+        )
+        
+        self.output_control = BufferControl(
+            buffer=self.output_buffer,
+            focusable=True,  # Focusabile per permettere lo scroll
+            include_default_input_processors=False
         )
         
         self.output_area = Window(
             content=self.output_control,
             wrap_lines=True,
             scrollbar=True,
-            scroll_offsets=ScrollOffsets(bottom=1)
+            scroll_offsets=ScrollOffsets(bottom=1),
+            always_hide_cursor=True  # Nascondi sempre il cursore nell'area di output
         )
         
         # Main layout
@@ -127,6 +132,82 @@ class AdvancedTerminalUI:
         def _(event):
             """Handle Ctrl+D."""
             event.app.exit()
+        
+        @self.kb.add('escape')
+        def _(event):
+            """Toggle focus between input and output areas."""
+            if self.output_focused:
+                # Switch to input area
+                self.output_focused = False
+                event.app.layout.focus(self.input_area)
+                self.auto_scroll = True  # Re-enable auto-scroll when returning to input
+            else:
+                # Switch to output area for scrolling
+                self.output_focused = True
+                event.app.layout.focus(self.output_area)
+                self.auto_scroll = False  # Disable auto-scroll when manually scrolling
+        
+        @self.kb.add('pageup')
+        def _(event):
+            """Scroll up in output area."""
+            if self.output_focused:
+                # Disable auto-scroll when user manually scrolls
+                self.auto_scroll = False
+                # Move cursor up by page (approximately 10 lines)
+                lines = self.output_buffer.text.split('\n')
+                current_line = self.output_buffer.document.cursor_position_row
+                new_line = max(0, current_line - 10)
+                self.output_buffer.cursor_position = self.output_buffer.document.translate_row_col_to_index(new_line, 0)
+        
+        @self.kb.add('pagedown')
+        def _(event):
+            """Scroll down in output area."""
+            if self.output_focused:
+                # Disable auto-scroll when user manually scrolls
+                self.auto_scroll = False
+                # Move cursor down by page (approximately 10 lines)
+                lines = self.output_buffer.text.split('\n')
+                current_line = self.output_buffer.document.cursor_position_row
+                new_line = min(len(lines) - 1, current_line + 10)
+                self.output_buffer.cursor_position = self.output_buffer.document.translate_row_col_to_index(new_line, 0)
+        
+        @self.kb.add('up')
+        def _(event):
+            """Handle up arrow - scroll up if in output area, otherwise history."""
+            if self.output_focused:
+                # Disable auto-scroll when user manually scrolls
+                self.auto_scroll = False
+                # Let prompt_toolkit handle default scrolling (move cursor up)
+                pass
+            # If not in output area, let input area handle history
+        
+        @self.kb.add('down')
+        def _(event):
+            """Handle down arrow - scroll down if in output area, otherwise history."""
+            if self.output_focused:
+                # Disable auto-scroll when user manually scrolls
+                self.auto_scroll = False
+                # Let prompt_toolkit handle default scrolling (move cursor down)
+                pass
+            # If not in output area, let input area handle history
+        
+        @self.kb.add('home')
+        def _(event):
+            """Go to top of output when in output area."""
+            if self.output_focused:
+                # Disable auto-scroll when user manually scrolls
+                self.auto_scroll = False
+                # Move cursor to beginning of buffer
+                self.output_buffer.cursor_position = 0
+        
+        @self.kb.add('end')
+        def _(event):
+            """Go to bottom of output when in output area."""
+            if self.output_focused:
+                # Re-enable auto-scroll when user goes to bottom
+                self.auto_scroll = True
+                # Scroll to bottom
+                self.scroll_to_bottom()
     
     def setup_application(self) -> None:
         """Setup the prompt_toolkit application."""
@@ -154,34 +235,38 @@ class AdvancedTerminalUI:
     def get_prompt_text(self) -> HTML:
         """Get the prompt text with styling."""
         timestamp = datetime.now().strftime("%H:%M")
-        return HTML(f'<class:timestamp>[{timestamp}]</class:timestamp> <class:prompt>todoist-ai ❯</class:prompt> ')
+        focus_indicator = "🎯" if not self.output_focused else "📜"
+        scroll_indicator = "" if self.auto_scroll else " 📌"
+        return HTML(f'<class:timestamp>[{timestamp}]</class:timestamp> <class:prompt>{focus_indicator} todoist-ai{scroll_indicator} ❯</class:prompt> ')
     
-    def get_output_text(self) -> FormattedText:
-        """Get the formatted output text."""
-        return FormattedText(self.output_lines)
+    def scroll_to_bottom(self) -> None:
+        """Scroll the output area to the bottom."""
+        try:
+            if hasattr(self, 'app') and self.app and hasattr(self, 'output_buffer'):
+                # Move cursor to end of buffer to scroll to bottom
+                self.output_buffer.cursor_position = len(self.output_buffer.text)
+                self.app.invalidate()
+        except:
+            pass  # Ignore errors if app is not ready
     
     def add_output_line(self, text: str, style: str = "") -> None:
         """Add a line to the output area."""
         timestamp = datetime.now().strftime("%H:%M:%S")
         
-        if style:
-            formatted_line = [
-                ("class:timestamp", f"[{timestamp}] "),
-                (f"class:{style}", text),
-                ("", "\n")
-            ]
-        else:
-            formatted_line = [
-                ("class:timestamp", f"[{timestamp}] "),
-                ("", text),
-                ("", "\n")
-            ]
+        # Format the line as plain text for the buffer
+        formatted_text = f"[{timestamp}] {text}\n"
         
-        self.output_lines.extend(formatted_line)
+        # Add to buffer
+        self.output_buffer.text += formatted_text
         
         # Keep only last 1000 lines to prevent memory issues
-        if len(self.output_lines) > 3000:  # 3 elements per line on average
-            self.output_lines = self.output_lines[-3000:]
+        lines = self.output_buffer.text.split('\n')
+        if len(lines) > 1000:
+            self.output_buffer.text = '\n'.join(lines[-1000:])
+        
+        # Auto-scroll to bottom only if auto_scroll is enabled
+        if self.auto_scroll:
+            self.scroll_to_bottom()
         
         # Refresh the output area
         if hasattr(self, 'app') and self.app.is_running:
@@ -190,7 +275,6 @@ class AdvancedTerminalUI:
     def handle_input_accept(self, buffer: Buffer) -> bool:
         """Handle when user presses Enter."""
         user_input = buffer.text.strip()
-        buffer.reset()
         
         if user_input:
             # Show the command in output
@@ -198,6 +282,9 @@ class AdvancedTerminalUI:
             
             # Process the command asynchronously
             asyncio.create_task(self.process_input(user_input))
+            
+            # Clear the buffer AFTER processing to avoid overwriting
+            buffer.reset()
         
         return True
     
@@ -256,6 +343,12 @@ class AdvancedTerminalUI:
         self.add_output_line("🎯 Welcome to Todoist AI CLI!", "success")
         self.add_output_line("Type /help for assistance or start chatting with AI", "info")
         self.add_output_line("Press Ctrl+C or type 'exit' to quit", "info")
+        self.add_output_line("", "")
+        self.add_output_line("📜 Scroll Controls:", "info")
+        self.add_output_line("  • ESC: Toggle focus between input/output", "info")
+        self.add_output_line("  • Page Up/Down: Scroll by page", "info")
+        self.add_output_line("  • Up/Down arrows: Scroll line by line", "info")
+        self.add_output_line("  • Home/End: Jump to top/bottom", "info")
         self.add_output_line("", "")
         
         # Initialize services
