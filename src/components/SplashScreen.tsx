@@ -5,6 +5,9 @@ import Spinner from 'ink-spinner';
 import gradient from 'gradient-string';
 import figures from 'figures';
 
+// Global flag to track if the app has been initialized
+let hasBeenInitialized = false;
+
 interface SplashScreenProps {
   onComplete?: () => void;
   duration?: number;
@@ -19,6 +22,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
   const [currentStep, setCurrentStep] = useState(0);
   const [isCompleted, setIsCompleted] = useState(false);
   const [showCompletionMessage, setShowCompletionMessage] = useState(false);
+  const [isFirstTime, setIsFirstTime] = useState(true);
 
   const steps = [
     'Inizializzazione Todoist AI CLI...',
@@ -27,7 +31,21 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
     'Pronto!'
   ];
 
+  // Check if this is the first time initialization
   useEffect(() => {
+    if (hasBeenInitialized) {
+      setIsFirstTime(false);
+      setIsCompleted(true);
+      setCurrentStep(steps.length - 1);
+      // Complete immediately without showing completion message
+      setTimeout(() => onComplete?.(), 100);
+    }
+  }, [onComplete, steps.length]);
+
+  useEffect(() => {
+    // Only run the initialization animation if it's the first time
+    if (!isFirstTime) return;
+
     const stepInterval = setInterval(() => {
       setCurrentStep(prev => {
         if (prev < steps.length - 1) {
@@ -36,6 +54,9 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
           clearInterval(stepInterval);
           setIsCompleted(true);
           setShowCompletionMessage(true);
+          
+          // Mark as initialized
+          hasBeenInitialized = true;
           
           // Hide completion message after 1.5 seconds
           setTimeout(() => {
@@ -53,7 +74,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
     }, duration / steps.length);
 
     return () => clearInterval(stepInterval);
-  }, [duration, onComplete, steps.length, keepVisible]);
+  }, [duration, onComplete, steps.length, keepVisible, isFirstTime]);
 
   const titleGradient = gradient(['#FF6B6B', '#4ECDC4', '#45B7D1']);
   const subtitleGradient = gradient(['#96CEB4', '#FFEAA7']);

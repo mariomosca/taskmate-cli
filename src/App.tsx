@@ -22,6 +22,12 @@ export const App: React.FC = () => {
   const [sessions, setSessions] = useState<any[]>([]);
   const [selectedSessionIndex, setSelectedSessionIndex] = useState(0);
   const [sessionContext, setSessionContext] = useState<string>('');
+  
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(0);
+  const [totalSessions, setTotalSessions] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
+  const [prioritySessionId, setPrioritySessionId] = useState<string | undefined>();
 
   // Check CLI arguments for session resume
   useEffect(() => {
@@ -34,6 +40,7 @@ export const App: React.FC = () => {
       if (sessionId && !sessionId.startsWith('--')) {
         // Resume specific session directly - hide splash and load session
         setShowSplash(false);
+        setPrioritySessionId(sessionId);
         handleResumeSpecificSession(sessionId);
       } else {
         // Show session selector after splash completes
@@ -67,13 +74,32 @@ export const App: React.FC = () => {
     }
   };
 
-  const loadSessionsForSelection = async () => {
+  const loadSessionsForSelection = async (page: number = 0) => {
     try {
-      const sessionList = await sessionManager.getSessionsForSelection();
-      setSessions(sessionList);
+      const result = await sessionManager.getSessionsForSelection(page, 5, prioritySessionId);
+      setSessions(result.sessions);
+      setCurrentPage(result.currentPage);
+      setTotalSessions(result.totalSessions);
+      setHasMore(result.hasMore);
       setShowSessionSelector(true);
     } catch (error) {
       addSystemMessage(`❌ Errore nel caricamento delle sessioni: ${error}`);
+    }
+  };
+
+  const handleNextPage = () => {
+    if (hasMore) {
+      const nextPage = currentPage + 1;
+      setCurrentPage(nextPage);
+      loadSessionsForSelection(nextPage);
+    }
+  };
+
+  const handlePrevPage = () => {
+    if (currentPage > 0) {
+      const prevPage = currentPage - 1;
+      setCurrentPage(prevPage);
+      loadSessionsForSelection(prevPage);
     }
   };
 
@@ -140,7 +166,18 @@ export const App: React.FC = () => {
 
     try {
       // Send to LLM
-      const response = await llmService.sendMessage(input, sessionContext);
+      const messages = [
+        ...(sessionContext ? [{
+          role: 'system' as const,
+          content: `Contesto della sessione precedente: ${sessionContext}`
+        }] : []),
+        {
+          role: 'user' as const,
+          content: input
+        }
+      ];
+      
+      const response = await llmService.chat(messages);
       
       // Add AI response
       const aiMessage: Message = {
@@ -149,8 +186,8 @@ export const App: React.FC = () => {
         content: response.content,
         timestamp: new Date(),
         metadata: {
-          llmProvider: response.provider,
-          processingTime: response.processingTime
+          llmProvider: 'claude',
+          processingTime: 0
         }
       };
       setMessages(prev => [...prev, aiMessage]);
@@ -216,6 +253,11 @@ export const App: React.FC = () => {
               onSessionSelected={handleSessionSelected}
               onCancel={handleSessionSelectorCancel}
               loading={false}
+              currentPage={currentPage}
+              totalSessions={totalSessions}
+              hasMore={hasMore}
+              onNextPage={handleNextPage}
+              onPrevPage={handlePrevPage}
             />
           )}
           {!showSessionSelector && (

@@ -15,6 +15,11 @@ interface SessionSelectorProps {
   onSessionSelected: (sessionId: string) => void;
   onCancel: () => void;
   loading?: boolean;
+  currentPage?: number;
+  totalSessions?: number;
+  hasMore?: boolean;
+  onNextPage?: () => void;
+  onPrevPage?: () => void;
 }
 
 export const SessionSelector: React.FC<SessionSelectorProps> = ({
@@ -23,7 +28,12 @@ export const SessionSelector: React.FC<SessionSelectorProps> = ({
   onIndexChange,
   onSessionSelected,
   onCancel,
-  loading = false
+  loading = false,
+  currentPage = 0,
+  totalSessions = 0,
+  hasMore = false,
+  onNextPage,
+  onPrevPage
 }) => {
   useInput((input, key) => {
     if (loading) return;
@@ -38,6 +48,10 @@ export const SessionSelector: React.FC<SessionSelectorProps> = ({
       }
     } else if (key.escape || input === 'q') {
       onCancel();
+    } else if (key.rightArrow && hasMore && onNextPage) {
+      onNextPage();
+    } else if (key.leftArrow && currentPage > 0 && onPrevPage) {
+      onPrevPage();
     }
   });
 
@@ -81,24 +95,50 @@ export const SessionSelector: React.FC<SessionSelectorProps> = ({
       </Text>
       <Text color="gray">
         Usa ↑/↓ per navigare, INVIO per selezionare, ESC per annullare
+        {(hasMore || currentPage > 0) && ', ←/→ per cambiare pagina'}
       </Text>
+      {totalSessions > 0 && (
+        <Text color="yellow">
+          Pagina {currentPage + 1} - Mostrando {sessions.length} di {totalSessions} sessioni
+        </Text>
+      )}
       <Text> </Text>
 
       {sessions.map((session: SessionInfo, index: number) => (
-        <Box key={session.id} marginY={0}>
-          <Text color={index === selectedIndex ? 'black' : 'white'} 
-                backgroundColor={index === selectedIndex ? 'cyan' : undefined}>
-            {index === selectedIndex ? '► ' : '  '}
-            {session.name}
+        <Box key={session.id} flexDirection="column" marginY={0}>
+          <Box>
+            <Text color={index === selectedIndex ? 'black' : 'white'} 
+                  backgroundColor={index === selectedIndex ? 'cyan' : undefined}>
+              {index === selectedIndex ? '► ' : '  '}
+              {session.name}
+            </Text>
+            <Text color="gray"> - {session.messageCount} messaggi, {formatDate(session.lastActivity)}</Text>
+          </Box>
+          <Text color="gray" dimColor>
+            {'  '}ID: {session.id}
           </Text>
-          <Text color="gray"> - {session.messageCount} messaggi, {formatDate(session.lastActivity)}</Text>
         </Box>
       ))}
 
       <Text> </Text>
       <Text color="gray" dimColor>
-        ID sessione selezionata: {sessions[selectedIndex]?.id.substring(0, 12)}...
+        Sessione selezionata: {sessions[selectedIndex]?.name || 'Nessuna'}
       </Text>
+      {sessions[selectedIndex] && (
+        <Text color="blue" dimColor>
+          ID completo: {sessions[selectedIndex].id}
+        </Text>
+      )}
+      
+      {(hasMore || currentPage > 0) && (
+        <Box marginTop={1}>
+          <Text color="gray">
+            {currentPage > 0 ? '← Pagina precedente' : ''}
+            {currentPage > 0 && hasMore ? ' | ' : ''}
+            {hasMore ? 'Pagina successiva →' : ''}
+          </Text>
+        </Box>
+      )}
     </Box>
   );
 };

@@ -74,6 +74,12 @@ export class SessionManager {
 
   async saveSession(session: Session): Promise<void> {
     try {
+      // Non salvare sessioni con 0 messaggi
+      if (session.messages.length === 0) {
+        console.log(`Skipping save for empty session ${session.id}`);
+        return;
+      }
+
       session.updatedAt = new Date();
       session.metadata = {
         totalMessages: session.messages.length,
@@ -192,14 +198,45 @@ export class SessionManager {
   }
 
   // Session Selection and Context Preparation
-  async getSessionsForSelection(): Promise<Array<{id: string, name: string, lastActivity: Date, messageCount: number}>> {
-    const sessions = await this.listSessions();
-    return sessions.map(session => ({
-      id: session.id,
-      name: session.name,
-      lastActivity: session.metadata!.lastActivity,
-      messageCount: session.messages.length
-    }));
+  async getSessionsForSelection(page: number = 0, pageSize: number = 5, prioritySessionId?: string): Promise<{
+    sessions: Array<{id: string, name: string, lastActivity: Date, messageCount: number}>,
+    totalSessions: number,
+    hasMore: boolean,
+    currentPage: number
+  }> {
+    const allSessions = await this.listSessions();
+    
+    // Se c'è un ID prioritario, mettiamo quella sessione in cima
+    let orderedSessions = allSessions;
+    if (prioritySessionId) {
+      const prioritySession = allSessions.find(s => s.id === prioritySessionId);
+      if (prioritySession) {
+        orderedSessions = [
+          prioritySession,
+          ...allSessions.filter(s => s.id !== prioritySessionId)
+        ];
+      }
+    }
+    
+    const totalSessions = orderedSessions.length;
+    const startIndex = page * pageSize;
+    const endIndex = startIndex + pageSize;
+    
+    const paginatedSessions = orderedSessions
+      .slice(startIndex, endIndex)
+      .map(session => ({
+        id: session.id,
+        name: session.name,
+        lastActivity: session.metadata!.lastActivity,
+        messageCount: session.messages.length
+      }));
+
+    return {
+      sessions: paginatedSessions,
+      totalSessions,
+      hasMore: endIndex < totalSessions,
+      currentPage: page
+    };
   }
 
   async prepareSessionContext(sessionId: string): Promise<string | null> {
