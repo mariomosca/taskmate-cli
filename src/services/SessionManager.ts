@@ -1,14 +1,30 @@
 import { promises as fs } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
-import { Session, Message, AppConfig } from '../types/index.js';
-import { llmService } from './LLMService.js';
-import { ContextManager } from './ContextManager.js';
+import { Message, Session, AppConfig } from '../types/index.js';
 import { DatabaseService } from './DatabaseService.js';
+import { LLMService, llmService } from './LLMService.js';
+import { ContextManager } from './ContextManager.js';
+import { TodoistAIService } from './TodoistAIService.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
+/**
+ * SessionManager - Manages conversation sessions and their lifecycle
+ * 
+ * This class handles:
+ * - Session creation, loading, and management
+ * - Message storage and retrieval within sessions
+ * - Integration with ContextManager for token tracking
+ * - Session metadata and context information
+ * 
+ * Key responsibilities:
+ * - Maintain active session state
+ * - Provide context information for UI display
+ * - Coordinate between database, context manager, and LLM service
+ * - Handle session switching and cleanup
+ */
 export class SessionManager {
   private sessionsDir: string;
   private configPath: string;
@@ -20,7 +36,8 @@ export class SessionManager {
     const baseDir = dataDir || join(__dirname, '../../data');
     this.sessionsDir = join(baseDir, 'sessions');
     this.configPath = join(baseDir, 'config.json');
-    this.contextManager = new ContextManager(llmService);
+    // Create ContextManager instance and share ModelManager from LLMService to avoid multiple instances
+    this.contextManager = new ContextManager(llmService, undefined, llmService.getModelManager());
     this.db = dbService || new DatabaseService();
     this.ensureDirectories();
   }
@@ -313,18 +330,40 @@ export class SessionManager {
     return this.currentSession;
   }
 
+  /**
+   * Get formatted context information for the current session
+   * 
+   * This method:
+   * 1. Checks if there's an active session
+   * 2. Delegates to ContextManager to format context info
+   * 3. Returns formatted string like "🟢 5% (1,234/200,000)"
+   * 
+   * @returns Formatted context string or null if no active session
+   */
   getContextInfo(): string | null {
     if (!this.currentSession) {
       return null;
     }
+    // Delegate to ContextManager to format context information for UI display
     return this.contextManager.formatContextInfo(this.currentSession.messages);
   }
 
+  /**
+   * Get detailed context description for the current session
+   * 
+   * This method:
+   * 1. Checks if there's an active session
+   * 2. Delegates to ContextManager to get detailed description
+   * 3. Returns human-readable context status description
+   * 
+   * @returns Context description string or null if no active session
+   */
   getContextDescription(): string | null {
     if (!this.currentSession) {
       return null;
     }
     
+    // Delegate to ContextManager to get detailed context description
     return this.contextManager.getContextDescription(this.currentSession.messages);
   }
 

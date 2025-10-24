@@ -1,0 +1,13 @@
+[
+  {
+    "timestamp": "2025-10-24T08:20:51.846Z",
+    "model": "claude-sonnet-4-5",
+    "inputTokens": 2276,
+    "outputTokens": 155,
+    "inputCost": 0.006828,
+    "outputCost": 0.002325,
+    "totalCost": 0.009153,
+    "operation": "chat",
+    "sessionId": "session_1761294038905_yo010pu2c"
+  }
+]

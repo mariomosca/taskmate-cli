@@ -1,0 +1,20 @@
+[
+  {
+    "model": "claude-3-sonnet-20240229",
+    "provider": "claude",
+    "inputTokenRatio": 0.8240997229916897,
+    "outputTokenRatio": 0.8223684210526314,
+    "sampleCount": 19,
+    "lastUpdated": "2025-10-24T07:31:04.813Z",
+    "confidence": 0.95
+  },
+  {
+    "model": "gpt-4",
+    "provider": "gemini",
+    "inputTokenRatio": 1.0416666666666663,
+    "outputTokenRatio": 1.0416666666666663,
+    "sampleCount": 12,
+    "lastUpdated": "2025-10-24T07:31:04.799Z",
+    "confidence": 0.6
+  }
+]

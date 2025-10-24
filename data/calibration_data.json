@@ -1,0 +1,29 @@
+[
+  {
+    "model": "claude-3-sonnet-20240229",
+    "provider": "claude",
+    "inputTokenRatio": 1.0526315789473684,
+    "outputTokenRatio": 1.0416666666666667,
+    "sampleCount": 4,
+    "lastUpdated": "2025-10-24T07:24:37.050Z",
+    "confidence": 0.2
+  },
+  {
+    "model": "gemini-1.5-pro",
+    "provider": "gemini",
+    "inputTokenRatio": 1.0526315789473684,
+    "outputTokenRatio": 1.0416666666666667,
+    "sampleCount": 2,
+    "lastUpdated": "2025-10-24T07:24:37.053Z",
+    "confidence": 0.1
+  },
+  {
+    "model": "claude-sonnet-4-5",
+    "provider": "claude",
+    "inputTokenRatio": 1138,
+    "outputTokenRatio": 0.002421875,
+    "sampleCount": 1,
+    "lastUpdated": "2025-10-24T08:20:51.851Z",
+    "confidence": 0.05
+  }
+]

@@ -174,12 +174,23 @@ export const App: React.FC = () => {
     );
   };
 
-  // Update context information
+  // Update context information from session manager
   const updateContextInfo = async () => {
     try {
       const info = await sessionManager.getContextInfo();
       const description = await sessionManager.getContextDescription();
-      setContextInfo(info);
+      
+      // If info is null (no messages), calculate default value using ModelManager
+      if (!info) {
+        const modelManager = sessionManager.getContextManager().getModelManager();
+        const currentModel = modelManager.getCurrentModel();
+        const modelConfig = modelManager.getModelConfig(currentModel);
+        const defaultInfo = `0% (0/${modelConfig.contextWindow})`;
+        setContextInfo(defaultInfo);
+      } else {
+        setContextInfo(info);
+      }
+      
       setContextDescription(description);
     } catch (error) {
       console.error('Error updating context info:', error);
@@ -209,10 +220,16 @@ export const App: React.FC = () => {
 
   // Update context info when messages change or when splash/session selector state changes
   useEffect(() => {
+    // Only update context info when app is fully loaded (no splash, no session selector)
     if (!showSplash && !showSessionSelector) {
       updateContextInfo();
     }
   }, [messages.length, showSplash, showSessionSelector]);
+
+  // Initial context info update when component mounts
+  useEffect(() => {
+    updateContextInfo();
+  }, []);
 
   const handleSubmit = async (input: string) => {
     if (!input.trim()) return;

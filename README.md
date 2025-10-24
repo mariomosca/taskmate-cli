@@ -201,40 +201,41 @@ npm run test:coverage
 ## 📚 Documentazione
 
 ### File di Documentazione
+- [`docs/SERVICES_GUIDE.md`](docs/SERVICES_GUIDE.md) - Guida completa ai servizi con esempi pratici
+- [`docs/API_REFERENCE.md`](docs/API_REFERENCE.md) - Riferimento API dettagliato per tutti i servizi
+- [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md) - Guida troubleshooting e FAQ
 - `PROJECT_ANALYSIS.md` - Analisi completa stato progetto
 - `IMPLEMENTATION_PLAN.md` - Piano implementazione originale
 - `.env.example` - Template configurazione
 
-### API Reference
-Documentazione dettagliata dei servizi disponibile nei file TypeScript con JSDoc.
+### Guide Rapide
+- **Primi Passi**: Segui la sezione [Installazione](#installazione) e [Configurazione](#configurazione)
+- **Uso dei Servizi**: Consulta [`SERVICES_GUIDE.md`](docs/SERVICES_GUIDE.md) per esempi pratici
+- **Risoluzione Problemi**: Vedi [`TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md) per soluzioni comuni
+- **API Reference**: Consulta [`API_REFERENCE.md`](docs/API_REFERENCE.md) per dettagli tecnici
 
 ## 🐛 Troubleshooting
 
 ### Problemi Comuni
 
-#### 1. Errori API Keys
-```bash
-Error: Invalid API key
-```
-**Soluzione**: Verifica che le API keys in `.env` siano corrette e valide.
+Per una guida completa alla risoluzione dei problemi, consulta [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md).
 
-#### 2. Errori di Connessione
-```bash
-Error: Network request failed
-```
-**Soluzione**: Controlla la connessione internet e lo stato dei servizi API.
+#### Problemi Rapidi
 
-#### 3. Errori di Build
-```bash
-Error: Cannot find module
-```
-**Soluzione**: Reinstalla le dipendenze con `npm install`.
+1. **Errori API Keys**: Verifica che le API keys in `.env` siano corrette
+2. **Errori di Connessione**: Controlla connessione internet e stato servizi API  
+3. **Errori di Build**: Reinstalla dipendenze con `npm install`
 
 ### Debug Mode
 Attiva il debug mode per log dettagliati:
 ```bash
 npm start -- --debug
 ```
+
+### Supporto
+- 📖 **Guida Completa**: [`TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md)
+- 🔧 **API Reference**: [`API_REFERENCE.md`](docs/API_REFERENCE.md)
+- 💡 **Esempi Pratici**: [`SERVICES_GUIDE.md`](docs/SERVICES_GUIDE.md)
 
 ## 🗺️ Roadmap
 

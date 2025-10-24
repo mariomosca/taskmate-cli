@@ -32,7 +32,7 @@ export const ContextIndicator = ({
 
   // Simple display text without icons
   const percentage = getContextPercentage(contextInfo);
-  const displayText = contextInfo || `0% (0/8192)`;
+  const displayText = contextInfo || `0% (0/?)`;
   const textColor = getContextColor(percentage);
 
   const getPositionStyles = () => {

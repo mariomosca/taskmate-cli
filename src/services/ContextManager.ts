@@ -3,22 +3,37 @@ import { LLMService } from './LLMService.js';
 import { DatabaseService } from './DatabaseService.js';
 import { TodoistAIService } from './TodoistAIService.js';
 import { PromptProcessor, SUMMARIZE_SESSION } from '../prompts/templates.js';
+import { ModelManager } from './ModelManager.js';
 
 /**
- * Gestisce il contesto delle conversazioni e il token counting
+ * ContextManager - Manages conversation context and token calculations
+ * 
+ * This class handles:
+ * - Token estimation and calculation for messages
+ * - Context window monitoring and status reporting
+ * - Automatic context summarization when limits are approached
+ * - Integration with ModelManager for accurate token limits
+ * 
+ * Key responsibilities:
+ * - Calculate total tokens used by conversation messages
+ * - Monitor context usage against model limits (200k for Claude)
+ * - Provide status indicators (safe/warning/critical)
+ * - Format context information for UI display
+ * - Trigger summarization when context becomes critical
  */
 export class ContextManager {
   private llmService: LLMService;
   private todoistAIService?: TodoistAIService;
-  private maxTokens: number;
+  private modelManager: ModelManager;
   private warningThreshold: number; // Percentuale di warning (es. 80%)
   private criticalThreshold: number; // Percentuale critica per summarize (es. 90%)
 
-  constructor(llmService: LLMService, todoistAIService?: TodoistAIService) {
+  constructor(llmService: LLMService, todoistAIService?: TodoistAIService, modelManager?: ModelManager) {
     this.llmService = llmService;
     this.todoistAIService = todoistAIService;
-    // Prende i max tokens dalla configurazione, con fallback
-    this.maxTokens = parseInt(process.env.CLAUDE_MAX_TOKENS || '8192');
+    // Use provided ModelManager instance or create a new one
+    // This allows sharing the same ModelManager instance across services
+    this.modelManager = modelManager || new ModelManager();
     this.warningThreshold = 0.8; // 80%
     this.criticalThreshold = 0.9; // 90%
   }
@@ -54,6 +69,18 @@ export class ContextManager {
   /**
    * Verifica se il contesto è vicino al limite
    */
+  /**
+   * Calculate context status and token usage
+   * 
+   * This method:
+   * 1. Calculates total tokens used by all messages
+   * 2. Gets the current model's context window limit (200k for Claude)
+   * 3. Calculates usage percentage
+   * 4. Determines status based on thresholds (80% warning, 90% critical)
+   * 
+   * @param messages - Array of conversation messages
+   * @returns Object with token counts, percentage, status, and summarization flag
+   */
   public getContextStatus(messages: Message[]): {
     totalTokens: number;
     maxTokens: number;
@@ -61,9 +88,18 @@ export class ContextManager {
     status: 'safe' | 'warning' | 'critical';
     needsSummarization: boolean;
   } {
+    // Calculate total tokens used by all messages in the conversation
     const totalTokens = this.calculateTotalTokens(messages);
-    const percentage = totalTokens / this.maxTokens;
+    
+    // Get current model configuration to determine context window limit
+    const currentModel = this.modelManager.getCurrentModel();
+    const modelConfig = this.modelManager.getModelConfig(currentModel);
+    const maxTokens = modelConfig.contextWindow; // 200,000 for Claude models
+    
+    // Calculate usage percentage
+    const percentage = totalTokens / maxTokens;
 
+    // Determine status based on usage thresholds
     let status: 'safe' | 'warning' | 'critical' = 'safe';
     if (percentage >= this.criticalThreshold) {
       status = 'critical';
@@ -73,7 +109,7 @@ export class ContextManager {
 
     return {
       totalTokens,
-      maxTokens: this.maxTokens,
+      maxTokens,
       percentage: Math.round(percentage * 100),
       status,
       needsSummarization: percentage >= this.criticalThreshold
@@ -283,5 +319,12 @@ export class ContextManager {
       default:
         return 'Stato sconosciuto';
     }
+  }
+
+  /**
+   * Restituisce il ModelManager per accedere alla configurazione del modello
+   */
+  public getModelManager(): ModelManager {
+    return this.modelManager;
   }
 }
