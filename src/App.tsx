@@ -231,19 +231,24 @@ export const App: React.FC = () => {
     setLoadingMessage('Elaborazione risposta...');
 
     try {
-      // Send to LLM
-      const messages = [
+      // Send to LLM - Include all current conversation messages
+      const llmMessages = [
         ...(sessionContext ? [{
           role: 'system' as const,
           content: `Contesto della sessione precedente: ${sessionContext}`
         }] : []),
+        // Include all messages from current conversation
+        ...messages.map(msg => ({
+          role: msg.role as 'user' | 'assistant' | 'system',
+          content: msg.content
+        })),
         {
           role: 'user' as const,
           content: input
         }
       ];
       
-      const response = await llmService.chatWithTools(messages);
+      const response = await llmService.chatWithTools(llmMessages);
       
       // Add AI response
       const aiMessage: Message = {
