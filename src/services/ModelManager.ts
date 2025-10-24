@@ -1,5 +1,4 @@
 import { ModelConfig, MODEL_CONFIGS, DEFAULT_MODEL_CONFIG } from '../config/ModelLimits.js';
-import { ModelProvider } from '../types/index.js';
 import { DatabaseService } from './DatabaseService.js';
 import { logger } from '../utils/logger.js';
 

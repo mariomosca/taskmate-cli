@@ -1,6 +1,5 @@
 import { promises as fs } from 'fs';
 import { join, dirname } from 'path';
-import { fileURLToPath } from 'url';
 import { Message, Session, AppConfig } from '../types/index.js';
 import { DatabaseService } from './DatabaseService.js';
 import { LLMService, llmService } from './LLMService.js';
@@ -9,9 +8,6 @@ import { TodoistAIService } from './TodoistAIService.js';
 import { logger } from '../utils/logger.js';
 import { errorHandler } from '../utils/ErrorHandler.js';
 import { ErrorType } from '../types/errors.js';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
 
 /**
  * SessionManager - Manages conversation sessions and their lifecycle
@@ -36,7 +32,7 @@ export class SessionManager {
   private db: DatabaseService;
 
   constructor(dataDir?: string, dbService?: DatabaseService) {
-    const baseDir = dataDir || join(__dirname, '../../data');
+    const baseDir = dataDir || './data';
     this.sessionsDir = join(baseDir, 'sessions');
     this.configPath = join(baseDir, 'config.json');
     // Create ContextManager instance and share ModelManager from LLMService to avoid multiple instances
@@ -87,17 +83,23 @@ export class SessionManager {
       this.currentSession = session;
       return session;
     } catch (error) {
-      logger.error(`Error loading session ${sessionId}:`, error);
+      // getSession throws an error if session is not found
+      logger.debug(`Session ${sessionId} not found or error loading:`, error);
       return null;
     }
   }
 
-  async saveSession(session: Session): Promise<void> {
+  async saveSession(session: Session, force: boolean = false): Promise<void> {
     try {
-      // Non salvare sessioni temporanee o con 0 messaggi
-      if (session.isTemporary || session.messages.length === 0) {
+      // Non salvare sessioni temporanee o con 0 messaggi, a meno che non sia forzato
+      if (!force && (session.isTemporary || session.messages.length === 0)) {
         logger.debug(`Skipping save for ${session.isTemporary ? 'temporary' : 'empty'} session ${session.id}`);
         return;
+      }
+
+      // Se forziamo il salvataggio, rendiamo la sessione non temporanea
+      if (force && session.isTemporary) {
+        session.isTemporary = false;
       }
 
       const updatedMetadata = {
@@ -106,12 +108,24 @@ export class SessionManager {
         lastActivity: new Date()
       };
 
-      await this.db.updateSession(session.id, {
-        name: session.name,
-        metadata: updatedMetadata
-      });
+      // Prima verifichiamo se la sessione esiste già
+      try {
+        const existingSession = await this.db.getSession(session.id);
+        
+        // Aggiorniamo la sessione esistente
+        await this.db.updateSession(session.id, {
+          name: session.name,
+          metadata: updatedMetadata
+        });
+        logger.debug(`Updated existing session ${session.id} in database`);
+      } catch (getError) {
+        // Creiamo la sessione se non esiste
+        await this.db.createSession(session);
+        logger.debug(`Created new session ${session.id} in database`);
+      }
     } catch (error) {
       logger.error(`Error saving session ${session.id}:`, error);
+      throw error;
     }
   }
 

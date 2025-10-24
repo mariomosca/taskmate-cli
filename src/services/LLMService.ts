@@ -337,7 +337,7 @@ export class LLMService {
 
   private async chatWithClaudeTools(messages: LLMMessage[]): Promise<LLMResponse> {
     if (!this.anthropic || !this.todoistAIService) {
-      throw new Error('Claude o TodoistAIService non configurato');
+      throw errorHandler.createConfigError('Claude o TodoistAIService non configurato');
     }
 
     // Get current model configuration
@@ -595,7 +595,12 @@ export class LLMService {
       };
     } catch (error) {
       logger.error('Errore chiamata Claude con tools:', error);
-      throw new Error(`Errore Claude: ${error instanceof Error ? error.message : 'Errore sconosciuto'}`);
+      throw errorHandler.createLLMError(
+        ErrorType.LLM_ERROR, 
+        `Errore Claude: ${error instanceof Error ? error.message : 'Errore sconosciuto'}`,
+        { component: 'LLMService', operation: 'chatWithClaudeTools' },
+        true
+      );
     }
   }
 

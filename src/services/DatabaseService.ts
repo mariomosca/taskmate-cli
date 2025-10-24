@@ -311,7 +311,10 @@ export class DatabaseService {
     const row = stmt.get(id) as MessageRow | undefined;
     
     if (!row) {
-      throw new Error(`Message with id ${id} not found`);
+      throw errorHandler.createDatabaseError(`Message with id ${id} not found`, {
+        component: 'DatabaseService',
+        operation: 'getMessage'
+      });
     }
 
     return this.mapMessageRowToMessage(row);
@@ -342,10 +345,16 @@ export class DatabaseService {
       const result = stmt.run(id);
       
       if (result.changes === 0) {
-        throw new Error(`Message with id ${id} not found`);
+        throw errorHandler.createDatabaseError(`Message with id ${id} not found`, {
+          component: 'DatabaseService',
+          operation: 'deleteMessage'
+        });
       }
     } catch (error) {
-      throw new Error(`Failed to delete message: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw errorHandler.createDatabaseError(
+        `Failed to delete message: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        { component: 'DatabaseService', operation: 'deleteMessage' }
+      );
     }
   }
 
@@ -355,7 +364,10 @@ export class DatabaseService {
     try {
       stmt.run(sessionId);
     } catch (error) {
-      throw new Error(`Failed to delete session messages: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw errorHandler.createDatabaseError(
+        `Failed to delete session messages: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        { component: 'DatabaseService', operation: 'deleteSessionMessages' }
+      );
     }
   }
 
@@ -414,7 +426,10 @@ export class DatabaseService {
     try {
       this.db.backup(backupPath);
     } catch (error) {
-      throw new Error(`Failed to backup database: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw errorHandler.createDatabaseError(
+        `Failed to backup database: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        { component: 'DatabaseService', operation: 'backup' }
+      );
     }
   }
 

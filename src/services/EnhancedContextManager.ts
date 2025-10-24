@@ -1,6 +1,7 @@
 import { TokenCounter, TokenCountResult } from './TokenCounter.js';
 import { ModelManager } from './ModelManager.js';
 import { ModelConfig } from '../config/ModelLimits.js';
+import { errorHandler } from '../utils/ErrorHandler.js';
 
 export interface LLMMessage {
   role: 'user' | 'assistant' | 'system';
@@ -257,7 +258,14 @@ export class EnhancedContextManager {
 
   setThresholds(warning: number, critical: number): void {
     if (warning >= critical || warning <= 0 || critical <= 0 || critical > 1) {
-      throw new Error('Invalid thresholds: warning must be < critical, both must be > 0 and critical <= 1');
+      throw errorHandler.createValidationError(
+        'Invalid thresholds: warning must be < critical, both must be > 0 and critical <= 1',
+        { 
+          component: 'EnhancedContextManager', 
+          operation: 'setThresholds',
+          metadata: { warning, critical }
+        }
+      );
     }
     this.warningThreshold = warning;
     this.criticalThreshold = critical;

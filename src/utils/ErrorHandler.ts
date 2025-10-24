@@ -190,6 +190,22 @@ export class ErrorHandler {
     return new LLMError(type, message, context, isRetryable);
   }
 
+  public createConfigError(message: string, context?: ErrorContext): AppError {
+    return new AppError(ErrorType.CONFIG_ERROR, message, {
+      severity: ErrorSeverity.HIGH,
+      context,
+      isRetryable: false
+    });
+  }
+
+  public createDatabaseError(message: string, context?: ErrorContext): AppError {
+    return new AppError(ErrorType.DATABASE_ERROR, message, {
+      severity: ErrorSeverity.HIGH,
+      context,
+      isRetryable: false
+    });
+  }
+
   /**
    * Wrapper per operazioni che possono fallire
    */

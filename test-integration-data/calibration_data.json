@@ -4,8 +4,8 @@
     "provider": "claude",
     "inputTokenRatio": 1.0416666666666659,
     "outputTokenRatio": 1.0416666666666659,
-    "sampleCount": 84,
-    "lastUpdated": "2025-10-24T12:37:08.986Z",
+    "sampleCount": 120,
+    "lastUpdated": "2025-10-24T14:05:43.364Z",
     "confidence": 0.95
   },
   {
@@ -13,17 +13,17 @@
     "provider": "gemini",
     "inputTokenRatio": 1.0416666666666659,
     "outputTokenRatio": 1.0416666666666659,
-    "sampleCount": 84,
-    "lastUpdated": "2025-10-24T12:37:09.003Z",
+    "sampleCount": 120,
+    "lastUpdated": "2025-10-24T14:05:43.391Z",
     "confidence": 0.95
   },
   {
     "model": "claude-sonnet-4-5-20250929",
     "provider": "claude",
-    "inputTokenRatio": 0.5370569280343718,
-    "outputTokenRatio": 0.5314625850340139,
-    "sampleCount": 49,
-    "lastUpdated": "2025-10-24T12:37:09.029Z",
+    "inputTokenRatio": 0.5311507763929173,
+    "outputTokenRatio": 0.5256179558054914,
+    "sampleCount": 73,
+    "lastUpdated": "2025-10-24T14:05:43.420Z",
     "confidence": 0.95
   }
 ]

@@ -1,5 +1,6 @@
 import { TodoistService } from '../services/TodoistService.js';
 import { TodoistConfig } from '../types/todoist.js';
+import axios from 'axios';
 
 // Mock axios
 jest.mock('axios', () => {
@@ -44,17 +45,38 @@ jest.mock('axios', () => {
   };
 });
 
+const mockedAxios = axios as jest.Mocked<typeof axios>;
+
 describe('TodoistService', () => {
   let todoistService: TodoistService;
+  let mockAxiosInstance: any;
+  
   const mockConfig: TodoistConfig = {
-    apiKey: 'fake-api-key',
+    apiKey: 'test-token',
     baseUrl: 'https://api.todoist.com/rest/v2',
-    timeout: 5000,
+    timeout: 10000,
     retryAttempts: 3,
     retryDelay: 1000
   };
 
   beforeEach(() => {
+    jest.clearAllMocks();
+    
+    mockAxiosInstance = {
+      get: jest.fn(),
+      post: jest.fn(),
+      put: jest.fn(),
+      delete: jest.fn(),
+      patch: jest.fn(),
+      request: jest.fn(),
+      defaults: { timeout: 10000 },
+      interceptors: {
+        request: { use: jest.fn() },
+        response: { use: jest.fn() }
+      }
+    };
+    
+    (mockedAxios.create as jest.Mock).mockReturnValue(mockAxiosInstance);
     todoistService = new TodoistService(mockConfig);
   });
 
@@ -495,80 +517,309 @@ describe('TodoistService', () => {
       });
     });
 
-    describe('sync', () => {
-      it('should perform sync', async () => {
-        try {
-          const result = await todoistService.sync();
-          expect(result).toBeDefined();
-          expect(result).toHaveProperty('success');
-        } catch (error) {
-          expect(error).toBeDefined();
-        }
+    describe('sync operations', () => {
+      it('should perform initial sync correctly', async () => {
+        const mockTasks = [
+          { id: '1', content: 'Task 1', is_completed: false, project_id: 'project1' },
+          { id: '2', content: 'Task 2', is_completed: false, project_id: 'project1' }
+        ];
+        const mockProjects = [
+          { id: 'project1', name: 'Project 1', color: 'blue' }
+        ];
+      
+        mockAxiosInstance.get
+          .mockResolvedValueOnce({ data: mockTasks })
+          .mockResolvedValueOnce({ data: mockProjects });
+      
+        const result = await todoistService.sync();
+      
+        expect(result).toEqual({
+          tasks_added: 2,
+          tasks_updated: 0,
+          tasks_completed: 0,
+          projects_added: 1,
+          projects_updated: 0,
+          sync_token: expect.any(String),
+          last_sync: expect.any(String)
+        });
+      });
+      
+      it('should detect task changes in subsequent sync', async () => {
+        // First sync
+        const initialTasks = [
+          { id: '1', content: 'Task 1', is_completed: false, project_id: 'project1' }
+        ];
+        const initialProjects = [
+          { id: 'project1', name: 'Project 1', color: 'blue' }
+        ];
+      
+        mockAxiosInstance.get
+          .mockResolvedValueOnce({ data: initialTasks })
+          .mockResolvedValueOnce({ data: initialProjects });
+      
+        await todoistService.sync();
+      
+        // Second sync with changes
+        const updatedTasks = [
+          { id: '1', content: 'Updated Task 1', is_completed: false, project_id: 'project1' },
+          { id: '2', content: 'New Task', is_completed: false, project_id: 'project1' }
+        ];
+        const updatedProjects = [
+          { id: 'project1', name: 'Updated Project 1', color: 'red' }
+        ];
+      
+        mockAxiosInstance.get
+          .mockResolvedValueOnce({ data: updatedTasks })
+          .mockResolvedValueOnce({ data: updatedProjects });
+      
+        const result = await todoistService.sync();
+      
+        expect(result).toEqual({
+          tasks_added: 1,
+          tasks_updated: 1,
+          tasks_completed: 0,
+          projects_added: 0,
+          projects_updated: 1,
+          sync_token: expect.any(String),
+          last_sync: expect.any(String)
+        });
+      });
+      
+      it('should detect completed tasks', async () => {
+        // First sync
+        const initialTasks = [
+          { id: '1', content: 'Task 1', is_completed: false, project_id: 'project1' }
+        ];
+        const initialProjects = [
+          { id: 'project1', name: 'Project 1', color: 'blue' }
+        ];
+      
+        mockAxiosInstance.get
+          .mockResolvedValueOnce({ data: initialTasks })
+          .mockResolvedValueOnce({ data: initialProjects });
+      
+        await todoistService.sync();
+      
+        // Second sync with completed task
+        const updatedTasks = [
+          { id: '1', content: 'Task 1', is_completed: true, project_id: 'project1' }
+        ];
+      
+        mockAxiosInstance.get
+          .mockResolvedValueOnce({ data: updatedTasks })
+          .mockResolvedValueOnce({ data: initialProjects });
+      
+        const result = await todoistService.sync();
+      
+        expect(result.tasks_completed).toBe(1);
+      });
+      
+      it('should detect deleted tasks and projects', async () => {
+        // First sync
+        const initialTasks = [
+          { id: '1', content: 'Task 1', is_completed: false, project_id: 'project1' },
+          { id: '2', content: 'Task 2', is_completed: false, project_id: 'project1' }
+        ];
+        const initialProjects = [
+          { id: 'project1', name: 'Project 1', color: 'blue' },
+          { id: 'project2', name: 'Project 2', color: 'red' }
+        ];
+      
+        mockAxiosInstance.get
+          .mockResolvedValueOnce({ data: initialTasks })
+          .mockResolvedValueOnce({ data: initialProjects });
+      
+        await todoistService.sync();
+      
+        // Second sync with deleted items
+        const updatedTasks = [
+          { id: '1', content: 'Task 1', is_completed: false, project_id: 'project1' }
+        ];
+        const updatedProjects = [
+          { id: 'project1', name: 'Project 1', color: 'blue' }
+        ];
+      
+        mockAxiosInstance.get
+          .mockResolvedValueOnce({ data: updatedTasks })
+          .mockResolvedValueOnce({ data: updatedProjects });
+      
+        const changes = await todoistService.getChangesSinceLastSync();
+      
+        expect(changes).toBeDefined();
+        expect(changes!.tasks.deleted).toContain('2');
+        expect(changes!.projects.deleted).toContain('project2');
       });
     });
 
-    describe('getChangesSinceLastSync', () => {
-      it('should get changes since last sync', async () => {
-        try {
-          const changes = await todoistService.getChangesSinceLastSync();
-          expect(changes).toBeDefined();
-        } catch (error) {
-          expect(error).toBeDefined();
-        }
+    describe('summary methods', () => {
+      it('should get task summary correctly', async () => {
+        const today = new Date().toISOString().split('T')[0];
+        const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+        
+        const mockTasks = [
+          { 
+            id: '1', 
+            content: 'High priority task', 
+            is_completed: false, 
+            priority: 4,
+            due: { date: today }
+          },
+          { 
+            id: '2', 
+            content: 'Overdue task', 
+            is_completed: false, 
+            priority: 2,
+            due: { date: yesterday }
+          },
+          { 
+            id: '3', 
+            content: 'Normal task', 
+            is_completed: false, 
+            priority: 1
+          }
+        ];
+      
+        mockAxiosInstance.get.mockResolvedValueOnce({ data: mockTasks });
+      
+        const summary = await todoistService.getTaskSummary();
+      
+        expect(summary).toEqual({
+          total: 3,
+          completed_today: 0,
+          overdue: 1,
+          due_today: 1,
+          high_priority: 1
+        });
+      });
+
+      it('should get project summary correctly', async () => {
+        const mockProjects = [
+          { id: 'project1', name: 'Project 1', color: 'blue', is_shared: false, is_favorite: false },
+          { id: 'project2', name: 'Project 2', color: 'red', is_shared: true, is_favorite: true }
+        ];
+      
+        mockAxiosInstance.get.mockResolvedValueOnce({ data: mockProjects });
+      
+        const summary = await todoistService.getProjectSummary();
+      
+        expect(summary).toEqual({
+          total: 2,
+          active: 2,
+          shared: 1,
+          favorite: 1
+        });
       });
     });
 
-    describe('searchTasks', () => {
-      it('should search tasks', async () => {
-        try {
-          const tasks = await todoistService.searchTasks('test');
-          expect(Array.isArray(tasks)).toBe(true);
-        } catch (error) {
-          expect(error).toBeDefined();
-        }
+    describe('bulk operations', () => {
+      it('should complete multiple tasks', async () => {
+        const taskIds = ['1', '2', '3'];
+        
+        mockAxiosInstance.post
+          .mockResolvedValueOnce({ data: { success: true } })
+          .mockResolvedValueOnce({ data: { success: true } })
+          .mockResolvedValueOnce({ data: { success: true } });
+      
+        const result = await todoistService.completeTasks(taskIds);
+      
+        expect(result).toEqual({
+          successful: ['1', '2', '3'],
+          failed: [],
+          total: 3
+        });
+      
+        expect(mockAxiosInstance.post).toHaveBeenCalledTimes(3);
+      });
+
+      it('should handle partial failures in bulk operations', async () => {
+        const taskIds = ['1', '2', '3'];
+        
+        mockAxiosInstance.post
+          .mockResolvedValueOnce({ data: { success: true } })
+          .mockRejectedValueOnce(new Error('API Error'))
+          .mockResolvedValueOnce({ data: { success: true } });
+      
+        const result = await todoistService.completeTasks(taskIds);
+      
+        expect(result).toEqual({
+          successful: ['1', '3'],
+          failed: [{ id: '2', error: 'Network Error: API Error' }],
+          total: 3
+        });
       });
     });
 
-    describe('getTasksByProject', () => {
+    describe('search and filter methods', () => {
+      it('should search tasks by query', async () => {
+        const mockTasks = [
+          { id: '1', content: 'Important meeting', is_completed: false },
+          { id: '2', content: 'Buy groceries', is_completed: false }
+        ];
+      
+        mockAxiosInstance.get.mockResolvedValueOnce({ data: mockTasks });
+      
+        const results = await todoistService.searchTasks('meeting');
+      
+        expect(results).toEqual(mockTasks);
+        expect(mockAxiosInstance.get).toHaveBeenCalledWith('/tasks', {
+          params: { filter: 'meeting' }
+        });
+      });
+
       it('should get tasks by project', async () => {
-        try {
-          const tasks = await todoistService.getTasksByProject('123456');
-          expect(Array.isArray(tasks)).toBe(true);
-        } catch (error) {
-          expect(error).toBeDefined();
-        }
+        const mockTasks = [
+          { id: '1', content: 'Task 1', project_id: 'project1' },
+          { id: '2', content: 'Task 2', project_id: 'project1' }
+        ];
+      
+        mockAxiosInstance.get.mockResolvedValueOnce({ data: mockTasks });
+      
+        const results = await todoistService.getTasksByProject('project1');
+      
+        expect(results).toEqual(mockTasks);
+        expect(mockAxiosInstance.get).toHaveBeenCalledWith('/tasks', {
+          params: { project_id: 'project1' }
+        });
       });
-    });
 
-    describe('getTasksByLabel', () => {
       it('should get tasks by label', async () => {
-        try {
-          const tasks = await todoistService.getTasksByLabel('important');
-          expect(Array.isArray(tasks)).toBe(true);
-        } catch (error) {
-          expect(error).toBeDefined();
-        }
+        const mockTasks = [
+          { id: '1', content: 'Task 1', labels: ['urgent'] },
+          { id: '2', content: 'Task 2', labels: ['urgent'] }
+        ];
+      
+        mockAxiosInstance.get.mockResolvedValueOnce({ data: mockTasks });
+      
+        const results = await todoistService.getTasksByLabel('urgent');
+      
+        expect(results).toEqual(mockTasks);
+        expect(mockAxiosInstance.get).toHaveBeenCalledWith('/tasks', {
+          params: { label: 'urgent' }
+        });
       });
     });
 
     describe('configuration methods', () => {
-      it('should update config', () => {
-        const newConfig = { timeout: 15000 };
+      it('should update configuration', () => {
+        const newConfig = { retryAttempts: 5, retryDelay: 2000 };
+        
         todoistService.updateConfig(newConfig);
+        
         const config = todoistService.getConfig();
-        expect(config.timeout).toBe(15000);
+        expect(config.retryAttempts).toBe(5);
+        expect(config.retryDelay).toBe(2000);
       });
 
-      it('should get config', () => {
+      it('should get current configuration', () => {
         const config = todoistService.getConfig();
-        expect(config).toBeDefined();
-        expect(config).toHaveProperty('apiKey');
-        expect(config).toHaveProperty('baseUrl');
-      });
-
-      it('should get last sync token', () => {
-        const token = todoistService.getLastSyncToken();
-        expect(token).toBeUndefined(); // Initially undefined
+        
+        expect(config).toEqual({
+          apiKey: 'test-token',
+          baseUrl: 'https://api.todoist.com/rest/v2',
+          timeout: 10000,
+          retryAttempts: 3,
+          retryDelay: 1000
+        });
       });
     });
   });

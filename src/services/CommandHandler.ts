@@ -440,7 +440,11 @@ export class CommandHandler {
 
       this.context.onOutput(output);
     } catch (error) {
-      throw new Error(`Impossibile recuperare lo status: ${error instanceof Error ? error.message : 'Errore sconosciuto'}`);
+      throw errorHandler.createLLMError(
+        ErrorType.LLM_ERROR,
+        `Impossibile recuperare lo status: ${error instanceof Error ? error.message : 'Errore sconosciuto'}`,
+        { component: 'CommandHandler', operation: 'status' }
+      );
     }
   }
 

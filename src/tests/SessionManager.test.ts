@@ -1,259 +1,451 @@
+import { SessionManager } from '../services/SessionManager.js';
 import { DatabaseService } from '../services/DatabaseService.js';
-import { Session, Message } from '../types/index.js';
-
-// Mock the entire SessionManager module to avoid import.meta.url issues
-jest.mock('../services/SessionManager.js', () => {
-  return {
-    SessionManager: jest.fn().mockImplementation(() => ({
-      createSession: jest.fn(),
-      loadSession: jest.fn(),
-      saveSession: jest.fn(),
-      deleteSession: jest.fn(),
-      addMessage: jest.fn(),
-      listSessions: jest.fn(),
-      getCurrentSession: jest.fn(),
-      searchMessages: jest.fn(),
-      loadConfig: jest.fn(),
-      saveConfig: jest.fn(),
-      getContextInfo: jest.fn(),
-      getContextDescription: jest.fn(),
-      getContextManager: jest.fn(),
-      getLastSession: jest.fn(),
-      resumeLastSession: jest.fn(),
-      getSessionsForSelection: jest.fn(),
-      prepareSessionContext: jest.fn(),
-      resumeSessionWithContext: jest.fn()
-    }))
-  };
-});
-
-// Mock DatabaseService
-jest.mock('../services/DatabaseService.js');
+import { Session, Message, AppConfig } from '../types/index.js';
+import { promises as fs } from 'fs';
+import { join } from 'path';
+import { tmpdir } from 'os';
 
 describe('SessionManager', () => {
-  let mockSessionManager: any;
-  let mockDbService: jest.Mocked<DatabaseService>;
+  let sessionManager: SessionManager;
+  let dbService: DatabaseService;
+  let testDataDir: string;
+  let configPath: string;
 
-  const mockSession: Session = {
-    id: 'test-session-id',
-    name: 'Test Session',
-    messages: [],
-    llmProvider: 'claude',
-    createdAt: new Date('2024-01-01'),
-    updatedAt: new Date('2024-01-01'),
-    metadata: {
-      totalMessages: 0,
-      totalTokens: 0,
-      lastActivity: new Date('2024-01-01')
+  beforeEach(async () => {
+     // Create a temporary directory for testing
+     testDataDir = join(tmpdir(), `sessionmanager-test-${Date.now()}`);
+     await fs.mkdir(testDataDir, { recursive: true });
+     
+     configPath = join(testDataDir, 'config.json');
+     
+     // Create a test database service
+     dbService = new DatabaseService({ dbPath: join(testDataDir, 'test.db') });
+     
+     // Create SessionManager instance
+     sessionManager = new SessionManager(testDataDir, dbService);
+   });
+
+  afterEach(async () => {
+    // Clean up
+    await dbService.close();
+    try {
+      await fs.rm(testDataDir, { recursive: true, force: true });
+    } catch (error) {
+      // Ignore cleanup errors
     }
-  };
-
-  const mockMessage: Message = {
-    id: 'test-message-id',
-    role: 'user',
-    content: 'Test message',
-    timestamp: new Date('2024-01-01'),
-    metadata: {
-      sessionId: 'test-session-id'
-    }
-  };
-
-  beforeEach(() => {
-    // Clear all mocks
-    jest.clearAllMocks();
-
-    // Create mock SessionManager instance
-    const { SessionManager } = require('../services/SessionManager.js');
-    mockSessionManager = new SessionManager();
-
-    // Setup mock DatabaseService
-    mockDbService = new DatabaseService() as jest.Mocked<DatabaseService>;
   });
 
   describe('Session Management', () => {
-    it('should create a new session', async () => {
-      mockSessionManager.createSession.mockResolvedValue(mockSession);
-
-      const result = await mockSessionManager.createSession('Test Session');
-
-      expect(mockSessionManager.createSession).toHaveBeenCalledWith('Test Session');
-      expect(result).toEqual(mockSession);
+    test('should create a new session', async () => {
+      const session = await sessionManager.createSession('Test Session', 'claude');
+      
+      expect(session).toBeDefined();
+      expect(session.name).toBe('Test Session');
+      expect(session.llmProvider).toBe('claude');
+      expect(session.messages).toEqual([]);
+      expect(session.id).toMatch(/^session_\d+_[a-z0-9]+$/);
+      expect(session.createdAt).toBeInstanceOf(Date);
+      expect(session.updatedAt).toBeInstanceOf(Date);
     });
 
-    it('should load an existing session', async () => {
-      mockSessionManager.loadSession.mockResolvedValue(mockSession);
-
-      const result = await mockSessionManager.loadSession('test-session-id');
-
-      expect(mockSessionManager.loadSession).toHaveBeenCalledWith('test-session-id');
-      expect(result).toEqual(mockSession);
+    test('should create session with default name when none provided', async () => {
+      const session = await sessionManager.createSession();
+      
+      expect(session.name).toMatch(/^Sessione \d{1,2}\/\d{1,2}\/\d{4}$/);
+      expect(session.llmProvider).toBe('claude');
     });
 
-    it('should return null for non-existent session', async () => {
-      mockSessionManager.loadSession.mockResolvedValue(null);
-
-      const result = await mockSessionManager.loadSession('non-existent-id');
-
-      expect(mockSessionManager.loadSession).toHaveBeenCalledWith('non-existent-id');
-      expect(result).toBeNull();
+    test('should load an existing session', async () => {
+      const createdSession = await sessionManager.createSession('Load Test');
+      await sessionManager.saveSession(createdSession, true); // Save to database
+      const loadedSession = await sessionManager.loadSession(createdSession.id);
+      
+      expect(loadedSession).toBeDefined();
+      expect(loadedSession!.id).toBe(createdSession.id);
+      expect(loadedSession!.name).toBe('Load Test');
     });
 
-    it('should save a session', async () => {
-      mockSessionManager.saveSession.mockResolvedValue(undefined);
-
-      await mockSessionManager.saveSession(mockSession);
-
-      expect(mockSessionManager.saveSession).toHaveBeenCalledWith(mockSession);
+    test('should return null when loading non-existent session', async () => {
+      const loadedSession = await sessionManager.loadSession('non-existent-id');
+      expect(loadedSession).toBeNull();
     });
 
-    it('should delete a session', async () => {
-      mockSessionManager.deleteSession.mockResolvedValue(true);
+    test('should save session successfully', async () => {
+      const session = await sessionManager.createSession('Save Test');
+      session.name = 'Updated Name'; // Update the name before saving
+      await sessionManager.saveSession(session, true);
+      const loadedSession = await sessionManager.loadSession(session.id);
+      
+      expect(loadedSession).toBeDefined();
+      expect(loadedSession!.name).toBe('Updated Name');
+    });
 
-      const result = await mockSessionManager.deleteSession('session-to-delete');
+    test('should list all sessions', async () => {
+      const session1 = await sessionManager.createSession('Session 1');
+      await sessionManager.saveSession(session1, true);
+      
+      const session2 = await sessionManager.createSession('Session 2');
+      await sessionManager.saveSession(session2, true);
+      
+      const sessions = await sessionManager.listSessions();
+      
+      expect(sessions).toHaveLength(2);
+      expect(sessions.map(s => s.name)).toContain('Session 1');
+      expect(sessions.map(s => s.name)).toContain('Session 2');
+    });
 
-      expect(mockSessionManager.deleteSession).toHaveBeenCalledWith('session-to-delete');
+    test('should delete session successfully', async () => {
+      const session = await sessionManager.createSession('Delete Test');
+      await sessionManager.saveSession(session, true);
+      
+      const result = await sessionManager.deleteSession(session.id);
       expect(result).toBe(true);
+      
+      const loadedSession = await sessionManager.loadSession(session.id);
+      expect(loadedSession).toBeNull();
     });
 
-    it('should list all sessions', async () => {
-      mockSessionManager.listSessions.mockResolvedValue([mockSession]);
-
-      const result = await mockSessionManager.listSessions();
-
-      expect(mockSessionManager.listSessions).toHaveBeenCalled();
-      expect(result).toEqual([mockSession]);
-    });
-
-    it('should get current session', () => {
-      mockSessionManager.getCurrentSession.mockReturnValue(mockSession);
-
-      const result = mockSessionManager.getCurrentSession();
-
-      expect(mockSessionManager.getCurrentSession).toHaveBeenCalled();
-      expect(result).toEqual(mockSession);
+    test('should clear current session when deleting active session', async () => {
+      const session = await sessionManager.createSession('Active Session');
+      
+      // Make it the current session by adding a message
+      const message: Message = {
+        id: 'msg1',
+        role: 'user',
+        content: 'Test message',
+        timestamp: new Date()
+      };
+      
+      await sessionManager.addMessage(message);
+      expect(sessionManager.getCurrentSession()).toBeDefined();
+      
+      await sessionManager.deleteSession(session.id);
+      expect(sessionManager.getCurrentSession()).toBeNull();
     });
   });
 
   describe('Message Management', () => {
-    it('should add a message to current session', async () => {
-      mockSessionManager.addMessage.mockResolvedValue(undefined);
-
-      await mockSessionManager.addMessage(mockMessage);
-
-      expect(mockSessionManager.addMessage).toHaveBeenCalledWith(mockMessage);
+    test('should add message to current session', async () => {
+      const session = await sessionManager.createSession('Message Test');
+      
+      const message: Message = {
+        id: 'msg1',
+        role: 'user',
+        content: 'Hello world',
+        timestamp: new Date()
+      };
+      
+      await sessionManager.addMessage(message);
+      
+      const currentSession = sessionManager.getCurrentSession();
+      expect(currentSession).toBeDefined();
+      expect(currentSession!.messages).toHaveLength(1);
+      expect(currentSession!.messages[0].content).toBe('Hello world');
     });
 
-    it('should search messages', async () => {
-      mockSessionManager.searchMessages.mockResolvedValue([mockMessage]);
-
-      const result = await mockSessionManager.searchMessages('test query');
-
-      expect(mockSessionManager.searchMessages).toHaveBeenCalledWith('test query');
-      expect(result).toEqual([mockMessage]);
+    test('should throw error when adding message without active session', async () => {
+      const message: Message = {
+        id: 'msg1',
+        role: 'user',
+        content: 'Hello world',
+        timestamp: new Date()
+      };
+      
+      await expect(sessionManager.addMessage(message)).rejects.toThrow('No active session');
     });
 
-    it('should search messages in specific session', async () => {
-      mockSessionManager.searchMessages.mockResolvedValue([mockMessage]);
-
-      const result = await mockSessionManager.searchMessages('test query', 'session-id');
-
-      expect(mockSessionManager.searchMessages).toHaveBeenCalledWith('test query', 'session-id');
-      expect(result).toEqual([mockMessage]);
-    });
-  });
-
-  describe('Context Management', () => {
-    it('should get context info', () => {
-      mockSessionManager.getContextInfo.mockReturnValue('Context info');
-
-      const result = mockSessionManager.getContextInfo();
-
-      expect(mockSessionManager.getContextInfo).toHaveBeenCalled();
-      expect(result).toBe('Context info');
-    });
-
-    it('should get context description', () => {
-      mockSessionManager.getContextDescription.mockReturnValue('Context description');
-
-      const result = mockSessionManager.getContextDescription();
-
-      expect(mockSessionManager.getContextDescription).toHaveBeenCalled();
-      expect(result).toBe('Context description');
-    });
-
-    it('should prepare session context', async () => {
-      mockSessionManager.prepareSessionContext.mockResolvedValue('Prepared context');
-
-      const result = await mockSessionManager.prepareSessionContext('session-id');
-
-      expect(mockSessionManager.prepareSessionContext).toHaveBeenCalledWith('session-id');
-      expect(result).toBe('Prepared context');
+    test('should search messages across sessions', async () => {
+      const session1 = await sessionManager.createSession('Search Test 1');
+      const session2 = await sessionManager.createSession('Search Test 2');
+      
+      const message1: Message = {
+        id: 'msg1',
+        role: 'user',
+        content: 'Hello world',
+        timestamp: new Date()
+      };
+      
+      const message2: Message = {
+        id: 'msg2',
+        role: 'user',
+        content: 'Goodbye world',
+        timestamp: new Date()
+      };
+      
+      await sessionManager.addMessage(message1);
+      
+      // Switch to second session
+      await sessionManager.loadSession(session2.id);
+      await sessionManager.addMessage(message2);
+      
+      const results = await sessionManager.searchMessages('world');
+      
+      expect(results).toHaveLength(2);
+      expect(results.map(r => r.content)).toContain('Hello world');
+      expect(results.map(r => r.content)).toContain('Goodbye world');
     });
 
-    it('should resume session with context', async () => {
-      const mockResult = { session: mockSession, context: 'Context' };
-      mockSessionManager.resumeSessionWithContext.mockResolvedValue(mockResult);
-
-      const result = await mockSessionManager.resumeSessionWithContext('session-id');
-
-      expect(mockSessionManager.resumeSessionWithContext).toHaveBeenCalledWith('session-id');
-      expect(result).toEqual(mockResult);
+    test('should search messages in specific session', async () => {
+      const session1 = await sessionManager.createSession('Specific Search 1');
+      await sessionManager.saveSession(session1, true);
+      
+      const session2 = await sessionManager.createSession('Specific Search 2');
+      await sessionManager.saveSession(session2, true);
+      
+      const message1: Message = {
+        id: 'msg1',
+        role: 'user',
+        content: 'Hello world',
+        timestamp: new Date()
+      };
+      
+      const message2: Message = {
+        id: 'msg2',
+        role: 'user',
+        content: 'Goodbye world',
+        timestamp: new Date()
+      };
+      
+      // Load session1 and add message
+      await sessionManager.loadSession(session1.id);
+      await sessionManager.addMessage(message1);
+      
+      // Switch to second session and add message
+      await sessionManager.loadSession(session2.id);
+      await sessionManager.addMessage(message2);
+      
+      const results = await sessionManager.searchMessages('Hello', session1.id);
+      
+      expect(results).toHaveLength(1);
+      expect(results[0].content).toBe('Hello world');
     });
   });
 
   describe('Configuration Management', () => {
-    it('should load configuration', async () => {
-      const mockConfig = { llmProvider: 'claude' as const };
-      mockSessionManager.loadConfig.mockResolvedValue(mockConfig);
-
-      const result = await mockSessionManager.loadConfig();
-
-      expect(mockSessionManager.loadConfig).toHaveBeenCalled();
-      expect(result).toEqual(mockConfig);
+    test('should load default config when file does not exist', async () => {
+      const config = await sessionManager.loadConfig();
+      
+      expect(config).toBeDefined();
+      expect(config.defaultLLM).toBe('claude');
+      expect(config.autoSave).toBe(true);
+      expect(config.theme).toBe('dark');
     });
 
-    it('should save configuration', async () => {
-      const mockConfig = { llmProvider: 'claude' as const };
-      mockSessionManager.saveConfig.mockResolvedValue(undefined);
-
-      await mockSessionManager.saveConfig(mockConfig);
-
-      expect(mockSessionManager.saveConfig).toHaveBeenCalledWith(mockConfig);
+    test('should save and load config', async () => {
+      const testConfig: AppConfig = {
+        defaultLLM: 'gemini',
+        sessionPath: '/test/path',
+        autoSave: false,
+        theme: 'light'
+      };
+      
+      await sessionManager.saveConfig(testConfig);
+      const loadedConfig = await sessionManager.loadConfig();
+      
+      expect(loadedConfig).toEqual(testConfig);
     });
   });
 
-  describe('Session Selection', () => {
-    it('should get sessions for selection', async () => {
-      const mockResult = {
-        sessions: [{ id: 'id', name: 'name', lastActivity: new Date(), messageCount: 1 }],
-        totalSessions: 1,
-        hasMore: false,
-        currentPage: 0
+  describe('Session Selection and Pagination', () => {
+    test('should get sessions for selection with pagination', async () => {
+      // Create multiple sessions
+      for (let i = 1; i <= 7; i++) {
+        const session = await sessionManager.createSession(`Session ${i}`);
+        await sessionManager.saveSession(session, true);
+      }
+      
+      const result = await sessionManager.getSessionsForSelection(0, 3);
+      
+      expect(result.sessions).toHaveLength(3);
+      expect(result.totalSessions).toBe(7);
+      expect(result.hasMore).toBe(true);
+      expect(result.currentPage).toBe(0);
+    });
+
+    test('should prioritize specific session in selection', async () => {
+      const session1 = await sessionManager.createSession('Session 1');
+      await sessionManager.saveSession(session1, true);
+      
+      const session2 = await sessionManager.createSession('Session 2');
+      await sessionManager.saveSession(session2, true);
+      
+      const session3 = await sessionManager.createSession('Session 3');
+      await sessionManager.saveSession(session3, true);
+      
+      const result = await sessionManager.getSessionsForSelection(0, 5, session2.id);
+      
+      expect(result.sessions[0].id).toBe(session2.id);
+      expect(result.sessions[0].name).toBe('Session 2');
+    });
+  });
+
+  describe('Context Management', () => {
+    test('should prepare session context', async () => {
+      const session = await sessionManager.createSession('Context Test');
+      
+      const message: Message = {
+        id: 'msg1',
+        role: 'user',
+        content: 'Test message for context',
+        timestamp: new Date()
       };
-      mockSessionManager.getSessionsForSelection.mockResolvedValue(mockResult);
-
-      const result = await mockSessionManager.getSessionsForSelection();
-
-      expect(mockSessionManager.getSessionsForSelection).toHaveBeenCalled();
-      expect(result).toEqual(mockResult);
+      
+      await sessionManager.addMessage(message);
+      
+      const context = await sessionManager.prepareSessionContext(session.id);
+      
+      expect(context).toBeDefined();
+      expect(context).toContain('Test message for context');
     });
 
-    it('should get last session', async () => {
-      mockSessionManager.getLastSession.mockResolvedValue(mockSession);
-
-      const result = await mockSessionManager.getLastSession();
-
-      expect(mockSessionManager.getLastSession).toHaveBeenCalled();
-      expect(result).toEqual(mockSession);
+    test('should return null for empty session context', async () => {
+      const session = await sessionManager.createSession('Empty Context Test');
+      
+      const context = await sessionManager.prepareSessionContext(session.id);
+      
+      expect(context).toBeNull();
     });
 
-    it('should resume last session', async () => {
-      mockSessionManager.resumeLastSession.mockResolvedValue(mockSession);
+    test('should resume session with context', async () => {
+      const session = await sessionManager.createSession('Resume Test');
+      
+      const message: Message = {
+        id: 'msg1',
+        role: 'user',
+        content: 'Resume message',
+        timestamp: new Date()
+      };
+      
+      await sessionManager.addMessage(message);
+      
+      const result = await sessionManager.resumeSessionWithContext(session.id);
+      
+      expect(result).toBeDefined();
+      expect(result!.session.id).toBe(session.id);
+      expect(result!.context).toContain('Resume message');
+      expect(sessionManager.getCurrentSession()?.id).toBe(session.id);
+    });
 
-      const result = await mockSessionManager.resumeLastSession();
+    test('should return null when resuming non-existent session', async () => {
+      const result = await sessionManager.resumeSessionWithContext('non-existent');
+      expect(result).toBeNull();
+    });
+  });
 
-      expect(mockSessionManager.resumeLastSession).toHaveBeenCalled();
-      expect(result).toEqual(mockSession);
+  describe('Utility Methods', () => {
+    test('should get current session', async () => {
+      expect(sessionManager.getCurrentSession()).toBeNull();
+      
+      const session = await sessionManager.createSession('Current Test');
+      const message: Message = {
+        id: 'msg1',
+        role: 'user',
+        content: 'Test',
+        timestamp: new Date()
+      };
+      
+      await sessionManager.addMessage(message);
+      
+      expect(sessionManager.getCurrentSession()).toBeDefined();
+      expect(sessionManager.getCurrentSession()!.id).toBe(session.id);
+    });
+
+    test('should get context info for current session', async () => {
+      expect(sessionManager.getContextInfo()).toBeNull();
+      
+      const session = await sessionManager.createSession('Context Info Test');
+      const message: Message = {
+        id: 'msg1',
+        role: 'user',
+        content: 'Test message',
+        timestamp: new Date()
+      };
+      
+      await sessionManager.addMessage(message);
+      
+      const contextInfo = sessionManager.getContextInfo();
+      expect(contextInfo).toBeDefined();
+      expect(typeof contextInfo).toBe('string');
+    });
+
+    test('should get context description for current session', async () => {
+      expect(sessionManager.getContextDescription()).toBeNull();
+      
+      const session = await sessionManager.createSession('Context Description Test');
+      const message: Message = {
+        id: 'msg1',
+        role: 'user',
+        content: 'Test message',
+        timestamp: new Date()
+      };
+      
+      await sessionManager.addMessage(message);
+      
+      const contextDescription = sessionManager.getContextDescription();
+      expect(contextDescription).toBeDefined();
+      expect(typeof contextDescription).toBe('string');
+    });
+
+    test('should get context manager', () => {
+      const contextManager = sessionManager.getContextManager();
+      expect(contextManager).toBeDefined();
+    });
+
+    test('should get last session', async () => {
+      expect(await sessionManager.getLastSession()).toBeNull();
+      
+      const session1 = await sessionManager.createSession('First Session');
+      await sessionManager.saveSession(session1, true);
+      
+      const session2 = await sessionManager.createSession('Second Session');
+      await sessionManager.saveSession(session2, true);
+      
+      const lastSession = await sessionManager.getLastSession();
+      expect(lastSession).toBeDefined();
+      // Should be the most recent one
+      expect(lastSession!.name).toBe('Second Session');
+    });
+
+    test('should resume last session', async () => {
+      expect(await sessionManager.resumeLastSession()).toBeNull();
+      
+      const session = await sessionManager.createSession('Resume Test');
+      await sessionManager.saveSession(session, true);
+      
+      const resumedSession = await sessionManager.resumeLastSession();
+      expect(resumedSession).toBeDefined();
+      expect(resumedSession!.id).toBe(session.id);
+      expect(sessionManager.getCurrentSession()?.id).toBe(session.id);
+    });
+  });
+
+  describe('Error Handling', () => {
+    test('should handle errors in saveSession gracefully', async () => {
+      const session = await sessionManager.createSession('Error Test');
+      
+      // Close the database to simulate an error
+      await dbService.close();
+      
+      // Should not throw, but log error internally
+      await expect(sessionManager.saveSession(session)).resolves.not.toThrow();
+    });
+
+    test('should handle errors in listSessions gracefully', async () => {
+      // Close the database to simulate an error
+      await dbService.close();
+      
+      const sessions = await sessionManager.listSessions();
+      expect(sessions).toEqual([]);
+    });
+
+    test('should handle errors in deleteSession gracefully', async () => {
+      const session = await sessionManager.createSession('Delete Error Test');
+      
+      // Close the database to simulate an error
+      await dbService.close();
+      
+      const result = await sessionManager.deleteSession(session.id);
+      expect(result).toBe(false);
     });
   });
 });
