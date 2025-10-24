@@ -9,7 +9,7 @@ describe('APIMetadataService', () => {
 
   describe('recordAPIUsage', () => {
     it('should record API usage with all parameters', async () => {
-      const model = 'claude-3-sonnet-20240229';
+      const model = 'claude-sonnet-4-5-20250929';
       const provider = 'claude' as const;
       const inputText = 'Test input message';
       const outputText = 'Test response from API';
@@ -38,7 +38,7 @@ describe('APIMetadataService', () => {
 
     it('should handle different models and providers', async () => {
       await apiMetadataService.recordAPIUsage(
-        'claude-3-sonnet-20240229',
+        'claude-sonnet-4-5-20250929',
         'claude',
         'Test input',
         'Test response',
@@ -68,7 +68,7 @@ describe('APIMetadataService', () => {
 
   describe('getCalibratedEstimate', () => {
     it('should return calibrated estimate for input tokens', async () => {
-      const model = 'claude-3-sonnet-20240229';
+      const model = 'claude-sonnet-4-5-20250929';
       const estimatedTokens = 100;
       
       const result = await apiMetadataService.getCalibratedEstimate(
@@ -88,7 +88,7 @@ describe('APIMetadataService', () => {
     });
 
     it('should return calibrated estimate for output tokens', async () => {
-      const model = 'claude-3-sonnet-20240229';
+      const model = 'claude-sonnet-4-5-20250929';
       const estimatedTokens = 50;
       
       const result = await apiMetadataService.getCalibratedEstimate(

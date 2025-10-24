@@ -3,6 +3,7 @@ import { join } from 'path';
 import { existsSync, mkdirSync } from 'fs';
 import { homedir } from 'os';
 import { Session, Message } from '../types/index.js';
+import { errorHandler } from '../utils/ErrorHandler.js';
 
 export interface DatabaseConfig {
   dbPath?: string;
@@ -116,21 +117,29 @@ export class DatabaseService {
 
   // Session Operations
   async createSession(session: Omit<Session, 'createdAt' | 'updatedAt'>): Promise<Session> {
-    const stmt = this.db.prepare(`
-      INSERT INTO sessions (id, name, metadata)
-      VALUES (?, ?, ?)
-    `);
+    return errorHandler.executeWithRetry(
+      async () => {
+        const stmt = this.db.prepare(`
+          INSERT INTO sessions (id, name, metadata)
+          VALUES (?, ?, ?)
+        `);
 
-    const metadata = JSON.stringify(session.metadata || {});
-    
-    try {
-      stmt.run(session.id, session.name, metadata);
-      
-      // Fetch the created session
-      return this.getSession(session.id);
-    } catch (error) {
-      throw new Error(`Failed to create session: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
+        const metadata = JSON.stringify(session.metadata || {});
+        stmt.run(session.id, session.name, metadata);
+        
+        // Fetch the created session
+        return this.getSession(session.id);
+      },
+      {
+        operation: 'create_session',
+        component: 'DatabaseService',
+        metadata: { 
+          sessionId: session.id, 
+          sessionName: session.name,
+          hasMetadata: !!session.metadata
+        }
+      }
+    );
   }
 
   async getSession(id: string): Promise<Session> {
@@ -143,7 +152,14 @@ export class DatabaseService {
     const row = stmt.get(id) as SessionRow | undefined;
     
     if (!row) {
-      throw new Error(`Session with id ${id} not found`);
+      throw errorHandler.createValidationError(
+        `Session with id ${id} not found`,
+        {
+          operation: 'get_session',
+          component: 'DatabaseService',
+          metadata: { sessionId: id }
+        }
+      );
     }
 
     return this.mapSessionRowToSession(row);
@@ -161,43 +177,60 @@ export class DatabaseService {
   }
 
   async updateSession(id: string, updates: Partial<Pick<Session, 'name' | 'metadata'>>): Promise<Session> {
-    const setParts: string[] = [];
-    const values: any[] = [];
+    return errorHandler.executeWithRetry(
+      async () => {
+        const setParts: string[] = [];
+        const values: any[] = [];
 
-    if (updates.name !== undefined) {
-      setParts.push('name = ?');
-      values.push(updates.name);
-    }
+        if (updates.name !== undefined) {
+          setParts.push('name = ?');
+          values.push(updates.name);
+        }
 
-    if (updates.metadata !== undefined) {
-      setParts.push('metadata = ?');
-      values.push(JSON.stringify(updates.metadata));
-    }
+        if (updates.metadata !== undefined) {
+          setParts.push('metadata = ?');
+          values.push(JSON.stringify(updates.metadata));
+        }
 
-    if (setParts.length === 0) {
-      return this.getSession(id);
-    }
+        if (setParts.length === 0) {
+          return this.getSession(id);
+        }
 
-    setParts.push('updated_at = datetime(\'now\')');
-    values.push(id);
+        setParts.push('updated_at = datetime(\'now\')');
+        values.push(id);
 
-    const stmt = this.db.prepare(`
-      UPDATE sessions
-      SET ${setParts.join(', ')}
-      WHERE id = ?
-    `);
+        const stmt = this.db.prepare(`
+          UPDATE sessions
+          SET ${setParts.join(', ')}
+          WHERE id = ?
+        `);
 
-    try {
-      const result = stmt.run(...values);
-      
-      if (result.changes === 0) {
-        throw new Error(`Session with id ${id} not found`);
+        const result = stmt.run(...values);
+        
+        if (result.changes === 0) {
+          throw errorHandler.createValidationError(
+            `Session with id ${id} not found`,
+            {
+              operation: 'update_session',
+              component: 'DatabaseService',
+              metadata: { sessionId: id, updates }
+            }
+          );
+        }
+
+        return this.getSession(id);
+      },
+      {
+        operation: 'update_session',
+        component: 'DatabaseService',
+        metadata: { 
+          sessionId: id, 
+          hasNameUpdate: updates.name !== undefined,
+          hasMetadataUpdate: updates.metadata !== undefined,
+          updateCount: Object.keys(updates).length
+        }
       }
-
-      return this.getSession(id);
-    } catch (error) {
-      throw new Error(`Failed to update session: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
+    );
   }
 
   async deleteSession(id: string): Promise<void> {
@@ -207,10 +240,24 @@ export class DatabaseService {
       const result = stmt.run(id);
       
       if (result.changes === 0) {
-        throw new Error(`Session with id ${id} not found`);
+        throw errorHandler.createValidationError(
+          `Session with id ${id} not found`,
+          {
+            operation: 'delete_session',
+            component: 'DatabaseService',
+            metadata: { sessionId: id }
+          }
+        );
       }
     } catch (error) {
-      throw new Error(`Failed to delete session: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw errorHandler.handleError(
+        error as Error,
+        {
+          operation: 'delete_session',
+          component: 'DatabaseService',
+          metadata: { sessionId: id }
+        }
+      );
     }
   }
 
@@ -221,26 +268,37 @@ export class DatabaseService {
 
   // Message Operations
   async addMessage(sessionId: string, message: Omit<Message, 'timestamp'>): Promise<Message> {
-    const stmt = this.db.prepare(`
-      INSERT INTO messages (id, session_id, role, content, metadata)
-      VALUES (?, ?, ?, ?, ?)
-    `);
+    return errorHandler.executeWithRetry(
+      async () => {
+        const stmt = this.db.prepare(`
+          INSERT INTO messages (id, session_id, role, content, metadata)
+          VALUES (?, ?, ?, ?, ?)
+        `);
 
-    const metadata = JSON.stringify(message.metadata || {});
-    
-    try {
-      stmt.run(
-        message.id,
-        sessionId,
-        message.role,
-        message.content,
-        metadata
-      );
+        const metadata = JSON.stringify(message.metadata || {});
+        
+        stmt.run(
+          message.id,
+          sessionId,
+          message.role,
+          message.content,
+          metadata
+        );
 
-      return this.getMessage(message.id);
-    } catch (error) {
-      throw new Error(`Failed to add message: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
+        return this.getMessage(message.id);
+      },
+      {
+        operation: 'add_message',
+        component: 'DatabaseService',
+        metadata: {
+          sessionId,
+          messageId: message.id,
+          messageRole: message.role,
+          contentLength: message.content.length,
+          hasMetadata: !!message.metadata
+        }
+      }
+    );
   }
 
   async getMessage(id: string): Promise<Message> {

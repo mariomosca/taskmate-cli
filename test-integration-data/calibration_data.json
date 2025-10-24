@@ -1,0 +1,29 @@
+[
+  {
+    "model": "claude-3-sonnet-20240229",
+    "provider": "claude",
+    "inputTokenRatio": 1.0416666666666659,
+    "outputTokenRatio": 1.0416666666666659,
+    "sampleCount": 84,
+    "lastUpdated": "2025-10-24T12:37:08.986Z",
+    "confidence": 0.95
+  },
+  {
+    "model": "gpt-4",
+    "provider": "gemini",
+    "inputTokenRatio": 1.0416666666666659,
+    "outputTokenRatio": 1.0416666666666659,
+    "sampleCount": 84,
+    "lastUpdated": "2025-10-24T12:37:09.003Z",
+    "confidence": 0.95
+  },
+  {
+    "model": "claude-sonnet-4-5-20250929",
+    "provider": "claude",
+    "inputTokenRatio": 0.5370569280343718,
+    "outputTokenRatio": 0.5314625850340139,
+    "sampleCount": 49,
+    "lastUpdated": "2025-10-24T12:37:09.029Z",
+    "confidence": 0.95
+  }
+]

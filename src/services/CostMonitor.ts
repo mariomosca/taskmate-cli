@@ -1,6 +1,8 @@
 import fs from 'fs/promises';
 import path from 'path';
 import { ModelManager } from './ModelManager.js';
+import { logger } from '../utils/logger.js';
+import { errorHandler } from '../utils/ErrorHandler.js';
 
 export interface UsageRecord {
   timestamp: Date;
@@ -283,7 +285,14 @@ export class CostMonitor {
       await this.ensureDirectoryExists();
       await fs.writeFile(this.usageFile, JSON.stringify(records, null, 2));
     } catch (error) {
-      console.error('Error saving usage record:', error);
+      errorHandler.handleError(error as Error, {
+        operation: 'saveUsageRecord',
+        component: 'CostMonitor',
+        metadata: { 
+          usageFile: this.usageFile,
+          recordCount: record ? 1 : 0
+        }
+      });
     }
   }
 

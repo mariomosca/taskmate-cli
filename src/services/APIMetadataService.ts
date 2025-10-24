@@ -1,5 +1,7 @@
 import fs from 'fs/promises';
 import path from 'path';
+import { logger } from '../utils/logger.js';
+import { errorHandler } from '../utils/ErrorHandler.js';
 
 export interface APIUsageMetadata {
   timestamp: Date;
@@ -265,7 +267,15 @@ export class APIMetadataService {
       await this.ensureDirectoryExists(this.metadataFile);
       await fs.writeFile(this.metadataFile, JSON.stringify(existing, null, 2));
     } catch (error) {
-      console.error('Error saving API metadata:', error);
+      errorHandler.handleError(error as Error, {
+        operation: 'saveMetadata',
+        component: 'APIMetadataService',
+        metadata: { 
+          metadataFile: this.metadataFile,
+          model: metadata.model,
+          provider: metadata.provider
+        }
+      });
     }
   }
 
@@ -288,7 +298,14 @@ export class APIMetadataService {
       await this.ensureDirectoryExists(this.calibrationFile);
       await fs.writeFile(this.calibrationFile, JSON.stringify(data, null, 2));
     } catch (error) {
-      console.error('Error saving calibration data:', error);
+      errorHandler.handleError(error as Error, {
+        operation: 'saveCalibrationData',
+        component: 'APIMetadataService',
+        metadata: { 
+          calibrationFile: this.calibrationFile,
+          dataCount: this.calibrationData.size
+        }
+      });
     }
   }
 

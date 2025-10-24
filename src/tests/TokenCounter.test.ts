@@ -10,10 +10,10 @@ describe('TokenCounter', () => {
   describe('countTokens', () => {
     it('should count tokens for Claude models', async () => {
       const text = 'Hello, world! This is a test message.';
-      const result = await tokenCounter.countTokens(text, 'claude-3-sonnet-20240229');
+      const result = await tokenCounter.countTokens(text, 'claude-sonnet-4-5-20250929');
       
       expect(result.tokens).toBeGreaterThan(0);
-      expect(result.model).toBe('claude-3-sonnet-20240229');
+      expect(result.model).toBe('claude-sonnet-4-5-20250929');
       expect(['precise', 'estimated']).toContain(result.method);
     });
 
@@ -27,13 +27,13 @@ describe('TokenCounter', () => {
     });
 
     it('should handle empty text', async () => {
-      const result = await tokenCounter.countTokens('', 'claude-3-sonnet-20240229');
+      const result = await tokenCounter.countTokens('', 'claude-sonnet-4-5-20250929');
       expect(result.tokens).toBe(0);
     });
 
     it('should handle very long text', async () => {
       const longText = 'word '.repeat(10000);
-      const result = await tokenCounter.countTokens(longText, 'claude-3-sonnet-20240229');
+      const result = await tokenCounter.countTokens(longText, 'claude-sonnet-4-5-20250929');
       
       expect(result.tokens).toBeGreaterThan(1000);
     });
@@ -54,14 +54,14 @@ describe('TokenCounter', () => {
         { content: 'I am doing well, thank you!' }
       ];
       
-      const result = await tokenCounter.countMessagesTokens(messages, 'claude-3-sonnet-20240229');
+      const result = await tokenCounter.countMessagesTokens(messages, 'claude-sonnet-4-5-20250929');
       
       expect(result.tokens).toBeGreaterThan(0);
-      expect(result.model).toBe('claude-3-sonnet-20240229');
+      expect(result.model).toBe('claude-sonnet-4-5-20250929');
     });
 
     it('should handle empty message array', async () => {
-      const result = await tokenCounter.countMessagesTokens([], 'claude-3-sonnet-20240229');
+      const result = await tokenCounter.countMessagesTokens([], 'claude-sonnet-4-5-20250929');
       expect(result.tokens).toBe(0);
     });
   });
@@ -69,14 +69,14 @@ describe('TokenCounter', () => {
   describe('exceedsLimit', () => {
     it('should return false when under limit', async () => {
       const shortText = 'Hello';
-      const exceeds = await tokenCounter.exceedsLimit(shortText, 'claude-3-sonnet-20240229', 1000);
+      const exceeds = await tokenCounter.exceedsLimit(shortText, 'claude-sonnet-4-5-20250929', 1000);
       
       expect(exceeds).toBe(false);
     });
 
     it('should return true when over limit', async () => {
       const longText = 'word '.repeat(1000);
-      const exceeds = await tokenCounter.exceedsLimit(longText, 'claude-3-sonnet-20240229', 10);
+      const exceeds = await tokenCounter.exceedsLimit(longText, 'claude-sonnet-4-5-20250929', 10);
       
       expect(exceeds).toBe(true);
     });
@@ -86,7 +86,7 @@ describe('TokenCounter', () => {
     it('should provide detailed statistics', async () => {
       const text = 'Hello, how are you today? I am doing well, thank you for asking!';
       
-      const stats = await tokenCounter.getTokenStats(text, 'claude-3-sonnet-20240229');
+      const stats = await tokenCounter.getTokenStats(text, 'claude-sonnet-4-5-20250929');
       
       expect(stats).toHaveProperty('result');
       expect(stats).toHaveProperty('characters');

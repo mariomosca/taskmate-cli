@@ -6,7 +6,11 @@ import { EnhancedContextManager } from './EnhancedContextManager.js';
 import { CostMonitor } from './CostMonitor.js';
 import { APIMetadataService } from './APIMetadataService.js';
 import { ModelManager } from './ModelManager.js';
+import { ContextManager } from './ContextManager.js';
+import { TokenCounter } from './TokenCounter.js';
 import { logger } from '../utils/logger.js';
+import { errorHandler } from '../utils/ErrorHandler.js';
+import { ErrorType } from '../types/errors.js';
 
 export interface LLMMessage {
   role: 'user' | 'assistant' | 'system';
@@ -93,17 +97,36 @@ export class LLMService {
       selectedProvider
     });
 
-    switch (selectedProvider) {
-      case 'claude':
-        logger.debug('Using Claude provider');
-        return this.chatWithClaude(messages);
-      case 'gemini':
-        logger.debug('Using Gemini provider');
-        return this.chatWithGemini(messages);
-      default:
-        logger.error(`Provider ${selectedProvider} non supportato`);
-        throw new Error(`Provider ${selectedProvider} non supportato`);
-    }
+    return await errorHandler.executeWithRetry(
+      async () => {
+        switch (selectedProvider) {
+          case 'claude':
+            logger.debug('Using Claude provider');
+            return this.chatWithClaude(messages);
+          case 'gemini':
+            logger.debug('Using Gemini provider');
+            return this.chatWithGemini(messages);
+          default:
+            throw errorHandler.createValidationError(
+              `Provider ${selectedProvider} non supportato`,
+              {
+                operation: 'chat',
+                component: 'LLMService',
+                metadata: { provider: selectedProvider, availableProviders: this.getAvailableProviders() }
+              }
+            );
+        }
+      },
+      {
+        operation: 'chat',
+        component: 'LLMService',
+        metadata: { 
+          provider: selectedProvider, 
+          messageCount: messages.length,
+          availableProviders: this.getAvailableProviders()
+        }
+      }
+    );
   }
 
   /**
@@ -124,19 +147,39 @@ export class LLMService {
       selectedProvider
     });
 
-    switch (selectedProvider) {
-      case 'claude':
-        logger.debug('Using Claude provider with tools');
-        return this.chatWithClaudeTools(messages);
-      case 'gemini':
-        // Gemini function calling implementation would go here
-        // For now, fallback to regular chat
-        logger.debug('Using Gemini provider (fallback to regular chat)');
-        return this.chatWithGemini(messages);
-      default:
-        logger.error(`Provider ${selectedProvider} non supportato in chatWithTools`);
-        throw new Error(`Provider ${selectedProvider} non supportato`);
-    }
+    return await errorHandler.executeWithRetry(
+      async () => {
+        switch (selectedProvider) {
+          case 'claude':
+            logger.debug('Using Claude provider with tools');
+            return this.chatWithClaudeTools(messages);
+          case 'gemini':
+            // Gemini function calling implementation would go here
+            // For now, fallback to regular chat
+            logger.debug('Using Gemini provider (fallback to regular chat)');
+            return this.chatWithGemini(messages);
+          default:
+            throw errorHandler.createValidationError(
+              `Provider ${selectedProvider} non supportato in chatWithTools`,
+              {
+                operation: 'chatWithTools',
+                component: 'LLMService',
+                metadata: { provider: selectedProvider, availableProviders: this.getAvailableProviders() }
+              }
+            );
+        }
+      },
+      {
+        operation: 'chatWithTools',
+        component: 'LLMService',
+        metadata: { 
+          provider: selectedProvider, 
+          messageCount: messages.length,
+          hasTodoistService: !!this.todoistAIService,
+          availableProviders: this.getAvailableProviders()
+        }
+      }
+    );
   }
 
   async summarizeContext(chatHistory: string): Promise<string> {
@@ -156,7 +199,14 @@ export class LLMService {
 
   private async chatWithClaude(messages: LLMMessage[]): Promise<LLMResponse> {
     if (!this.anthropic) {
-      throw new Error('Chiave API Claude non configurata');
+      throw errorHandler.createAuthenticationError(
+        'Chiave API Claude non configurata',
+        {
+          operation: 'chatWithClaude',
+          component: 'LLMService',
+          metadata: { provider: 'claude' }
+        }
+      );
     }
 
     // Separa i messaggi di sistema dagli altri
@@ -168,75 +218,87 @@ export class LLMService {
     // Use ModelManager to get current model and its configuration
     const currentModel = this.modelManager.getCurrentModel();
     const modelConfig = this.modelManager.getModelConfig(currentModel);
-    console.log(`[DEBUG] Using model: ${currentModel}, context window: ${modelConfig.contextWindow}`);
+    logger.debug(`Using model: ${currentModel}, context window: ${modelConfig.contextWindow}`);
 
-    try {
-      const stream = await this.anthropic.messages.create({
-        model: currentModel,
-        max_tokens: modelConfig.maxOutputTokens,
-        temperature: 0.7,
-        system: systemContent || undefined,
-        messages: conversationMessages.map(msg => ({
-          role: msg.role as 'user' | 'assistant',
-          content: msg.content
-        })),
-        stream: true
-      });
+    return await errorHandler.executeWithRetry(
+      async () => {
+        const stream = await this.anthropic!.messages.create({
+          model: currentModel,
+          max_tokens: modelConfig.maxOutputTokens,
+          temperature: 0.7,
+          system: systemContent || undefined,
+          messages: conversationMessages.map(msg => ({
+            role: msg.role as 'user' | 'assistant',
+            content: msg.content
+          })),
+          stream: true
+        });
 
-      let fullContent = '';
-      let inputTokens = 0;
-      let outputTokens = 0;
+        let fullContent = '';
+        let inputTokens = 0;
+        let outputTokens = 0;
 
-      // Process the streaming response
-      for await (const chunk of stream) {
-        if (chunk.type === 'message_start') {
-          inputTokens = chunk.message.usage.input_tokens;
-        } else if (chunk.type === 'content_block_delta') {
-          if (chunk.delta.type === 'text_delta') {
-            fullContent += chunk.delta.text;
-          }
-        } else if (chunk.type === 'message_delta') {
-          if (chunk.usage) {
-            outputTokens = chunk.usage.output_tokens;
+        // Process the streaming response
+        for await (const chunk of stream) {
+          if (chunk.type === 'message_start') {
+            inputTokens = chunk.message.usage.input_tokens;
+          } else if (chunk.type === 'content_block_delta') {
+            if (chunk.delta.type === 'text_delta') {
+              fullContent += chunk.delta.text;
+            }
+          } else if (chunk.type === 'message_delta') {
+            if (chunk.usage) {
+              outputTokens = chunk.usage.output_tokens;
+            }
           }
         }
-      }
 
-      // Debug logging per vedere la risposta completa di Claude
-      logger.debug('Claude API Streaming Response', {
-        fullContent,
-        contentLength: fullContent.length,
-        inputTokens,
-        outputTokens
-      });
-      
-      logger.debug('Claude streaming response completed', {
-        contentLength: fullContent.length,
-        inputTokens,
-        outputTokens
-      });
-
-      if (fullContent) {
-        logger.debug('Claude text response details', {
-          textValue: fullContent,
-          textType: typeof fullContent,
-          textLength: fullContent.length
+        // Debug logging per vedere la risposta completa di Claude
+        logger.debug('Claude API Streaming Response', {
+          fullContent,
+          contentLength: fullContent.length,
+          inputTokens,
+          outputTokens
         });
         
-        return {
-          content: fullContent,
-          usage: {
-            input_tokens: inputTokens,
-            output_tokens: outputTokens
-          }
-        };
-      }
+        logger.debug('Claude streaming response completed', {
+          contentLength: fullContent.length,
+          inputTokens,
+          outputTokens
+        });
 
-      throw new Error('Risposta non valida da Claude');
-    } catch (error) {
-      console.error('Errore chiamata Claude:', error);
-      throw new Error(`Errore Claude: ${error instanceof Error ? error.message : 'Errore sconosciuto'}`);
-    }
+        if (fullContent) {
+          logger.debug('Claude text response details', {
+            textValue: fullContent,
+            textType: typeof fullContent,
+            textLength: fullContent.length
+          });
+          
+          return {
+            content: fullContent,
+            usage: {
+              input_tokens: inputTokens,
+              output_tokens: outputTokens
+            }
+          };
+        }
+
+        throw errorHandler.createLLMError(
+            ErrorType.LLM_ERROR,
+            'Risposta non valida da Claude',
+            {
+              operation: 'chatWithClaude',
+              component: 'LLMService',
+              metadata: { model: currentModel, provider: 'claude' }
+            }
+          );
+       },
+       {
+         operation: 'chatWithClaude',
+         component: 'LLMService',
+         metadata: { model: currentModel, provider: 'claude', messageCount: messages.length }
+       }
+    );
   }
 
   private async recordUsageAndMetadata(
@@ -286,7 +348,7 @@ export class LLMService {
     const contextStatus = await this.enhancedContextManager.getContextStatus(messages, currentModel);
     
     if (contextStatus.status === 'critical') {
-      console.warn('Context window critical:', contextStatus.recommendedAction);
+      logger.warn('Context window critical:', contextStatus.recommendedAction);
       // Optimize context if critical
       const optimized = await this.enhancedContextManager.optimizeContext(messages, 0.3, currentModel);
       messages = optimized.optimizedMessages;
@@ -532,7 +594,7 @@ export class LLMService {
         toolCalls
       };
     } catch (error) {
-      console.error('Errore chiamata Claude con tools:', error);
+      logger.error('Errore chiamata Claude con tools:', error);
       throw new Error(`Errore Claude: ${error instanceof Error ? error.message : 'Errore sconosciuto'}`);
     }
   }
@@ -540,7 +602,14 @@ export class LLMService {
   private async chatWithGemini(messages: LLMMessage[]): Promise<LLMResponse> {
     const googleApiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
     if (!googleApiKey) {
-      throw new Error('Chiave API Gemini non configurata');
+      throw errorHandler.createAuthenticationError(
+        'Chiave API Gemini non configurata',
+        {
+          operation: 'chatWithGemini',
+          component: 'LLMService',
+          metadata: { provider: 'gemini' }
+        }
+      );
     }
 
     // Get current model configuration
@@ -551,93 +620,105 @@ export class LLMService {
     const contextStatus = await this.enhancedContextManager.getContextStatus(messages, currentModel);
     
     if (contextStatus.status === 'critical') {
-      console.warn('Context window critical:', contextStatus.recommendedAction);
+      logger.warn('Context window critical:', contextStatus.recommendedAction);
       // Optimize context if critical
       const optimized = await this.enhancedContextManager.optimizeContext(messages, 0.3, currentModel);
       messages = optimized.optimizedMessages;
     }
 
-    try {
-      // Converti i messaggi nel formato Gemini
-      const contents = messages
-        .filter(m => m.role !== 'system')
-        .map(msg => ({
-          role: msg.role === 'assistant' ? 'model' : 'user',
-          parts: [{ text: msg.content }]
-        }));
+    return await errorHandler.executeWithRetry(
+      async () => {
+        // Converti i messaggi nel formato Gemini
+        const contents = messages
+          .filter(m => m.role !== 'system')
+          .map(msg => ({
+            role: msg.role === 'assistant' ? 'model' : 'user',
+            parts: [{ text: msg.content }]
+          }));
 
-      const systemInstruction = messages
-        .filter(m => m.role === 'system')
-        .map(m => m.content)
-        .join('\n\n');
+        const systemInstruction = messages
+          .filter(m => m.role === 'system')
+          .map(m => m.content)
+          .join('\n\n');
 
-      // Estimate tokens for cost monitoring
-      const tokenResult = await this.enhancedContextManager.getTokenCounter().countMessagesTokens(messages, currentModel);
-      const estimatedInputTokens = tokenResult.tokens;
-      const estimatedOutputTokens = modelConfig?.maxOutputTokens || 4096;
+        // Estimate tokens for cost monitoring
+        const tokenResult = await this.enhancedContextManager.getTokenCounter().countMessagesTokens(messages, currentModel);
+        const estimatedInputTokens = tokenResult.tokens;
+        const estimatedOutputTokens = modelConfig?.maxOutputTokens || 4096;
 
-      const requestBody = {
-        contents,
-        generationConfig: {
-          temperature: parseFloat(process.env.GEMINI_TEMPERATURE || '0.7'),
-          maxOutputTokens: Math.min(modelConfig?.maxOutputTokens || 4096, parseInt(process.env.GEMINI_MAX_TOKENS || '4096')),
-        },
-        ...(systemInstruction && {
-          systemInstruction: {
-            parts: [{ text: systemInstruction }]
-          }
-        })
-      };
-
-      const response = await axios.post(
-        `https://generativelanguage.googleapis.com/v1beta/models/${currentModel}:generateContent?key=${googleApiKey}`,
-        requestBody,
-        {
-          headers: {
-            'Content-Type': 'application/json',
+        const requestBody = {
+          contents,
+          generationConfig: {
+            temperature: parseFloat(process.env.GEMINI_TEMPERATURE || '0.7'),
+            maxOutputTokens: Math.min(modelConfig?.maxOutputTokens || 4096, parseInt(process.env.GEMINI_MAX_TOKENS || '4096')),
           },
-          timeout: 30000
-        }
-      );
+          ...(systemInstruction && {
+            systemInstruction: {
+              parts: [{ text: systemInstruction }]
+            }
+          })
+        };
 
-      const candidate = response.data.candidates?.[0];
-      if (!candidate?.content?.parts?.[0]?.text) {
-        throw new Error('Risposta non valida da Gemini');
+        const response = await axios.post(
+          `https://generativelanguage.googleapis.com/v1beta/models/${currentModel}:generateContent?key=${googleApiKey}`,
+          requestBody,
+          {
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            timeout: 30000
+          }
+        );
+
+        const candidate = response.data.candidates?.[0];
+        if (!candidate?.content?.parts?.[0]?.text) {
+          throw errorHandler.createLLMError(
+            ErrorType.LLM_ERROR,
+            'Risposta non valida da Gemini',
+            {
+              operation: 'chatWithGemini',
+              component: 'LLMService',
+              metadata: { model: currentModel, provider: 'gemini' }
+            }
+          );
+        }
+
+        const actualInputTokens = response.data.usageMetadata?.promptTokenCount || 0;
+        const actualOutputTokens = response.data.usageMetadata?.candidatesTokenCount || 0;
+        
+        // Record usage for cost monitoring and API metadata
+        await this.recordUsageAndMetadata(
+          currentModel,
+          'gemini',
+          messages,
+          candidate.content.parts[0].text,
+          actualInputTokens,
+          actualOutputTokens,
+          estimatedInputTokens,
+          estimatedOutputTokens,
+          'chat'
+        );
+
+        return {
+          content: candidate.content.parts[0].text,
+          usage: {
+            input_tokens: actualInputTokens,
+            output_tokens: actualOutputTokens
+          }
+        };
+      },
+      {
+        operation: 'chatWithGemini',
+        component: 'LLMService',
+        metadata: { model: currentModel, provider: 'gemini', messageCount: messages.length }
       }
-
-      const actualInputTokens = response.data.usageMetadata?.promptTokenCount || 0;
-      const actualOutputTokens = response.data.usageMetadata?.candidatesTokenCount || 0;
-      
-      // Record usage for cost monitoring and API metadata
-      await this.recordUsageAndMetadata(
-        currentModel,
-        'gemini',
-        messages,
-        candidate.content.parts[0].text,
-        actualInputTokens,
-        actualOutputTokens,
-        estimatedInputTokens,
-        estimatedOutputTokens,
-        'chat'
-      );
-
-      return {
-        content: candidate.content.parts[0].text,
-        usage: {
-          input_tokens: actualInputTokens,
-          output_tokens: actualOutputTokens
-        }
-      };
-    } catch (error) {
-      console.error('Errore chiamata Gemini:', error);
-      throw new Error(`Errore Gemini: ${error instanceof Error ? error.message : 'Errore sconosciuto'}`);
-    }
+    );
   }
 
   private async chatWithGeminiTools(messages: LLMMessage[]): Promise<LLMResponse> {
     // Per ora, Gemini con tools non è implementato completamente
     // Fallback al metodo normale
-    console.warn('Function calling con Gemini non ancora implementato, uso metodo normale');
+    logger.warn('Function calling con Gemini non ancora implementato, uso metodo normale');
     return this.chatWithGemini(messages);
   }
 

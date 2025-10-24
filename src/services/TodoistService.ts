@@ -21,6 +21,9 @@ import {
   BulkOperationResult,
   CommandResult
 } from '../types/todoist.js';
+import { logger } from '../utils/logger.js';
+import { errorHandler } from '../utils/ErrorHandler.js';
+import { ErrorType } from '../types/errors.js';
 
 export class TodoistService {
   private client: AxiosInstance;
@@ -84,20 +87,82 @@ export class TodoistService {
   private handleApiError(error: AxiosError): Error {
     if (error.response?.data) {
       const apiError = error.response.data as TodoistApiError;
-      return new Error(`Todoist API Error: ${apiError.error} (Code: ${apiError.error_code})`);
+      const statusCode = error.response.status;
+      
+      if (statusCode === 401 || statusCode === 403) {
+        return errorHandler.createAuthenticationError(
+          'Todoist API authentication failed',
+          {
+            operation: 'todoist_api_call',
+            component: 'TodoistService',
+            metadata: { 
+              statusCode, 
+              errorCode: apiError.error_code,
+              apiError: apiError.error 
+            }
+          }
+        );
+      }
+      
+      if (statusCode === 429) {
+        return errorHandler.createNetworkError(
+          'Todoist API rate limit exceeded',
+          {
+            operation: 'todoist_api_call',
+            component: 'TodoistService',
+            metadata: { 
+              statusCode, 
+              errorCode: apiError.error_code,
+              apiError: apiError.error,
+              errorType: 'RATE_LIMIT_ERROR'
+            }
+          }
+        );
+      }
+      
+      return errorHandler.createNetworkError(
+        `Todoist API Error: ${apiError.error}`,
+        {
+          operation: 'todoist_api_call',
+          component: 'TodoistService',
+          metadata: { 
+            statusCode, 
+            errorCode: apiError.error_code,
+            apiError: apiError.error,
+            errorType: 'API_ERROR'
+          }
+        }
+      );
     }
-    return new Error(`Network Error: ${error.message}`);
+    
+    return errorHandler.createNetworkError(
+      `Network Error: ${error.message}`,
+      {
+        operation: 'todoist_api_call',
+        component: 'TodoistService',
+        metadata: { 
+          code: error.code,
+          message: error.message,
+          errorType: 'NETWORK_ERROR'
+        }
+      }
+    );
   }
 
   // Authentication and Connection
   async authenticate(): Promise<boolean> {
-    try {
-      await this.getProjects();
-      return true;
-    } catch (error) {
-      console.error('Authentication failed:', error);
-      return false;
-    }
+    return await errorHandler.safeExecute(
+      async () => {
+        await this.getProjects();
+        return true;
+      },
+      {
+        operation: 'authenticate',
+        component: 'TodoistService',
+        metadata: { apiKey: this.config.apiKey ? 'present' : 'missing' }
+      },
+      false // fallback value
+    ) ?? false;
   }
 
   async testConnection(): Promise<CommandResult> {
@@ -146,21 +211,41 @@ export class TodoistService {
   }
 
   async createTask(taskData: CreateTaskRequest): Promise<TodoistTask> {
-    try {
-      const response = await this.client.post<TodoistTask>('/tasks', taskData);
-      return response.data;
-    } catch (error) {
-      throw this.handleApiError(error as AxiosError);
-    }
+    return await errorHandler.executeWithRetry(
+      async () => {
+        const response = await this.client.post<TodoistTask>('/tasks', taskData);
+        return response.data;
+      },
+      {
+        operation: 'createTask',
+        component: 'TodoistService',
+        metadata: {
+          taskContent: taskData.content,
+          projectId: taskData.project_id,
+          hasLabels: !!taskData.labels?.length,
+          hasDueDate: !!taskData.due_string
+        }
+      }
+    );
   }
 
   async updateTask(id: string, updates: UpdateTaskRequest): Promise<TodoistTask> {
-    try {
-      const response = await this.client.post<TodoistTask>(`/tasks/${id}`, updates);
-      return response.data;
-    } catch (error) {
-      throw this.handleApiError(error as AxiosError);
-    }
+    return await errorHandler.executeWithRetry(
+      async () => {
+        const response = await this.client.post<TodoistTask>(`/tasks/${id}`, updates);
+        return response.data;
+      },
+      {
+        operation: 'updateTask',
+        component: 'TodoistService',
+        metadata: {
+          taskId: id,
+          hasContent: !!updates.content,
+          hasLabels: !!updates.labels?.length,
+          hasDueDate: !!updates.due_string
+        }
+      }
+    );
   }
 
   async completeTask(id: string): Promise<void> {
@@ -350,15 +435,46 @@ export class TodoistService {
 
   // Sync Operations
   async sync(): Promise<SyncResult> {
-    try {
-      // Fetch current data from Todoist
-      const [currentTasks, currentProjects] = await Promise.all([
-        this.getTasks(),
-        this.getProjects()
-      ]);
+    return await errorHandler.executeWithRetry(
+      async () => {
+        // Fetch current data from Todoist
+        const [currentTasks, currentProjects] = await Promise.all([
+          this.getTasks(),
+          this.getProjects()
+        ]);
 
-      // If this is the first sync, just cache the data
-      if (!this.syncState.cached_tasks || !this.syncState.cached_projects) {
+        // If this is the first sync, just cache the data
+        if (!this.syncState.cached_tasks || !this.syncState.cached_projects) {
+          this.syncState = {
+            last_sync_token: Date.now().toString(),
+            last_sync_timestamp: new Date().toISOString(),
+            cached_tasks: currentTasks,
+            cached_projects: currentProjects
+          };
+
+          const result: SyncResult = {
+             tasks_added: currentTasks.length,
+             tasks_updated: 0,
+             tasks_completed: 0,
+             projects_added: currentProjects.length,
+             projects_updated: 0,
+             sync_token: this.syncState.last_sync_token!,
+             last_sync: this.syncState.last_sync_timestamp!
+           };
+
+          this.lastSyncToken = this.syncState.last_sync_token;
+          return result;
+        }
+
+        // Compare with cached data to find changes
+        const changes = this.detectChanges(
+          this.syncState.cached_tasks,
+          this.syncState.cached_projects,
+          currentTasks,
+          currentProjects
+        );
+
+        // Update cache
         this.syncState = {
           last_sync_token: Date.now().toString(),
           last_sync_timestamp: new Date().toISOString(),
@@ -367,50 +483,27 @@ export class TodoistService {
         };
 
         const result: SyncResult = {
-           tasks_added: currentTasks.length,
-           tasks_updated: 0,
-           tasks_completed: 0,
-           projects_added: currentProjects.length,
-           projects_updated: 0,
+           tasks_added: changes.tasks.added.length,
+           tasks_updated: changes.tasks.updated.length,
+           tasks_completed: changes.tasks.completed.length,
+           projects_added: changes.projects.added.length,
+           projects_updated: changes.projects.updated.length,
            sync_token: this.syncState.last_sync_token!,
            last_sync: this.syncState.last_sync_timestamp!
          };
 
         this.lastSyncToken = this.syncState.last_sync_token;
         return result;
+      },
+      {
+        operation: 'sync',
+        component: 'TodoistService',
+        metadata: {
+          hasCache: !!(this.syncState.cached_tasks && this.syncState.cached_projects),
+          lastSyncToken: this.lastSyncToken
+        }
       }
-
-      // Compare with cached data to find changes
-      const changes = this.detectChanges(
-        this.syncState.cached_tasks,
-        this.syncState.cached_projects,
-        currentTasks,
-        currentProjects
-      );
-
-      // Update cache
-      this.syncState = {
-        last_sync_token: Date.now().toString(),
-        last_sync_timestamp: new Date().toISOString(),
-        cached_tasks: currentTasks,
-        cached_projects: currentProjects
-      };
-
-      const result: SyncResult = {
-         tasks_added: changes.tasks.added.length,
-         tasks_updated: changes.tasks.updated.length,
-         tasks_completed: changes.tasks.completed.length,
-         projects_added: changes.projects.added.length,
-         projects_updated: changes.projects.updated.length,
-         sync_token: this.syncState.last_sync_token!,
-         last_sync: this.syncState.last_sync_timestamp!
-       };
-
-      this.lastSyncToken = this.syncState.last_sync_token;
-      return result;
-    } catch (error) {
-      throw this.handleApiError(error as AxiosError);
-    }
+    );
   }
 
   /**

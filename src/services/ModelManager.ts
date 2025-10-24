@@ -1,4 +1,7 @@
 import { ModelConfig, MODEL_CONFIGS, DEFAULT_MODEL_CONFIG } from '../config/ModelLimits.js';
+import { ModelProvider } from '../types/index.js';
+import { DatabaseService } from './DatabaseService.js';
+import { logger } from '../utils/logger.js';
 
 /**
  * ModelManager - Manages AI model configurations and selection
@@ -40,7 +43,7 @@ export class ModelManager {
 
   setCurrentModel(model: string): void {
     if (!MODEL_CONFIGS[model]) {
-      console.warn(`Model ${model} not found in configurations, using default config`);
+      logger.warn(`Model ${model} not found in configurations, using default config`);
     }
     this.currentModel = model;
   }

@@ -6,6 +6,9 @@ import { DatabaseService } from './DatabaseService.js';
 import { LLMService, llmService } from './LLMService.js';
 import { ContextManager } from './ContextManager.js';
 import { TodoistAIService } from './TodoistAIService.js';
+import { logger } from '../utils/logger.js';
+import { errorHandler } from '../utils/ErrorHandler.js';
+import { ErrorType } from '../types/errors.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -47,7 +50,7 @@ export class SessionManager {
       await fs.mkdir(this.sessionsDir, { recursive: true });
       await fs.mkdir(dirname(this.configPath), { recursive: true });
     } catch (error) {
-      console.error('Error creating directories:', error);
+      logger.error('Error creating directories:', error);
     }
   }
 
@@ -84,7 +87,7 @@ export class SessionManager {
       this.currentSession = session;
       return session;
     } catch (error) {
-      console.error(`Error loading session ${sessionId}:`, error);
+      logger.error(`Error loading session ${sessionId}:`, error);
       return null;
     }
   }
@@ -93,7 +96,7 @@ export class SessionManager {
     try {
       // Non salvare sessioni temporanee o con 0 messaggi
       if (session.isTemporary || session.messages.length === 0) {
-        console.log(`Skipping save for ${session.isTemporary ? 'temporary' : 'empty'} session ${session.id}`);
+        logger.debug(`Skipping save for ${session.isTemporary ? 'temporary' : 'empty'} session ${session.id}`);
         return;
       }
 
@@ -108,7 +111,7 @@ export class SessionManager {
         metadata: updatedMetadata
       });
     } catch (error) {
-      console.error(`Error saving session ${session.id}:`, error);
+      logger.error(`Error saving session ${session.id}:`, error);
     }
   }
 
@@ -123,7 +126,7 @@ export class SessionManager {
 
       return sessions;
     } catch (error) {
-      console.error('Error listing sessions:', error);
+      logger.error('Error listing sessions:', error);
       return [];
     }
   }
@@ -138,7 +141,7 @@ export class SessionManager {
       
       return true;
     } catch (error) {
-      console.error(`Error deleting session ${sessionId}:`, error);
+      logger.error(`Error deleting session ${sessionId}:`, error);
       return false;
     }
   }
@@ -146,7 +149,14 @@ export class SessionManager {
   // Message Management
   async addMessage(message: Message): Promise<void> {
     if (!this.currentSession) {
-      throw new Error('No active session');
+      throw errorHandler.createValidationError(
+        'No active session',
+        {
+          operation: 'add_message',
+          component: 'SessionManager',
+          metadata: { messageRole: message.role }
+        }
+      );
     }
 
     // Se la sessione è temporanea (non ancora salvata), la salviamo prima nel database
@@ -216,7 +226,7 @@ export class SessionManager {
     try {
       await fs.writeFile(this.configPath, JSON.stringify(config, null, 2));
     } catch (error) {
-      console.error('Error saving config:', error);
+      logger.error('Error saving config:', error);
     }
   }
 
@@ -292,7 +302,7 @@ export class SessionManager {
 
       return chatHistory;
     } catch (error) {
-      console.error('Errore durante la preparazione del contesto:', error);
+      logger.error('Errore durante la preparazione del contesto:', error);
       // Fallback: restituisci gli ultimi messaggi
       const lastMessages = session.messages.slice(-5)
         .map(msg => {

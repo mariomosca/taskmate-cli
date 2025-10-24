@@ -1,4 +1,5 @@
 import { encoding_for_model } from 'tiktoken';
+import { logger } from '../utils/logger.js';
 
 export interface TokenCountResult {
   tokens: number;
@@ -27,7 +28,7 @@ export class TokenCounter {
           return this.estimateTokens(text, model);
       }
     } catch (error) {
-      console.warn(`Fallback to estimation for model ${model}:`, error);
+      logger.warn(`Fallback to estimation for model ${model}:`, error);
       return this.estimateTokens(text, model);
     }
   }
@@ -46,7 +47,7 @@ export class TokenCounter {
         method: 'precise'
       };
     } catch (error) {
-      console.warn(`Error in Claude token counting, falling back to estimation:`, error);
+      logger.warn(`Error in Claude token counting, falling back to estimation:`, error);
       return this.estimateTokens(text, model);
     }
   }

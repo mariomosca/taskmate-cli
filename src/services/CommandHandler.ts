@@ -4,6 +4,9 @@ import { SessionManager } from './SessionManager.js';
 import { DatabaseService } from './DatabaseService.js';
 import { LLMService } from './LLMService.js';
 import { TodoistTask, TodoistProject, CreateTaskRequest } from '../types/todoist.js';
+import { logger } from '../utils/logger.js';
+import { errorHandler } from '../utils/ErrorHandler.js';
+import { ErrorType } from '../types/errors.js';
 
 export interface LoadingStep {
   id: string;
@@ -217,25 +220,40 @@ export class CommandHandler {
 
       this.context.onOutput(output);
     } catch (error) {
-      throw new Error(`Impossibile recuperare le sessioni: ${error instanceof Error ? error.message : 'Errore sconosciuto'}`);
+      throw errorHandler.handleError(error as Error, {
+        operation: 'list_sessions',
+        component: 'CommandHandler',
+        metadata: { command: 'sessions' }
+      });
     }
   }
 
   private async handleNewSessionCommand(args: string[]): Promise<void> {
-    try {
-      const options = this.parseArgs(args);
-      const name = args.filter(arg => !arg.startsWith('--')).join(' ') || undefined;
-      const provider = (options.provider as 'claude' | 'gemini') || 'claude';
+    const options = this.parseArgs(args);
+    const name = args.filter(arg => !arg.startsWith('--')).join(' ') || undefined;
+    const provider = (options.provider as 'claude' | 'gemini') || 'claude';
 
+    try {
       if (provider !== 'claude' && provider !== 'gemini') {
-        throw new Error('Provider non valido. Usa: claude o gemini');
+        throw errorHandler.createValidationError(
+          'Provider non valido. Usa: claude o gemini',
+          {
+            operation: 'create_session',
+            component: 'CommandHandler',
+            metadata: { providedProvider: provider, validProviders: ['claude', 'gemini'] }
+          }
+        );
       }
 
       const session = await this.context.sessionManager.createSession(name, provider);
       
       this.context.onOutput(`✨ **Nuova sessione creata!**\n\n📝 Nome: ${session.name}\n🆔 ID: ${session.id}`);
     } catch (error) {
-      throw new Error(`Impossibile creare la sessione: ${error instanceof Error ? error.message : 'Errore sconosciuto'}`);
+      throw errorHandler.handleError(error as Error, {
+        operation: 'create_session',
+        component: 'CommandHandler',
+        metadata: { sessionName: name, provider }
+      });
     }
   }
 
@@ -273,39 +291,77 @@ export class CommandHandler {
 
   private async handleLoadSessionCommand(args: string[]): Promise<void> {
     if (args.length === 0) {
-      throw new Error('Devi specificare l\'ID della sessione. Uso: /load <session_id>');
+      throw errorHandler.createValidationError(
+        'Devi specificare l\'ID della sessione. Uso: /load <session_id>',
+        {
+          operation: 'load_session',
+          component: 'CommandHandler',
+          metadata: { command: 'load', argsProvided: args.length }
+        }
+      );
     }
 
+    const sessionId = args[0];
+
     try {
-      const sessionId = args[0];
       const session = await this.context.sessionManager.loadSession(sessionId);
       
       if (!session) {
-        throw new Error(`Sessione con ID ${sessionId} non trovata.`);
+        throw errorHandler.createValidationError(
+          `Sessione con ID ${sessionId} non trovata.`,
+          {
+            operation: 'load_session',
+            component: 'CommandHandler',
+            metadata: { sessionId }
+          }
+        );
       }
 
       this.context.onOutput(`📂 **Sessione caricata!**\n\n📝 Nome: ${session.name}\n🆔 ID: ${session.id}\n💬 ${session.messages.length} messaggi\n📅 Ultima attività: ${session.updatedAt.toLocaleDateString()}`);
     } catch (error) {
-      throw new Error(`Impossibile caricare la sessione: ${error instanceof Error ? error.message : 'Errore sconosciuto'}`);
+      throw errorHandler.handleError(error as Error, {
+        operation: 'load_session',
+        component: 'CommandHandler',
+        metadata: { sessionId }
+      });
     }
   }
 
   private async handleDeleteSessionCommand(args: string[]): Promise<void> {
     if (args.length === 0) {
-      throw new Error('Devi specificare l\'ID della sessione. Uso: /delete-session <session_id>');
+      throw errorHandler.createValidationError(
+        'Devi specificare l\'ID della sessione. Uso: /delete-session <session_id>',
+        {
+          operation: 'delete_session',
+          component: 'CommandHandler',
+          metadata: { command: 'delete-session', argsProvided: args.length }
+        }
+      );
     }
 
+    const sessionId = args[0];
+
     try {
-      const sessionId = args[0];
       const success = await this.context.sessionManager.deleteSession(sessionId);
       
       if (!success) {
-        throw new Error(`Impossibile eliminare la sessione ${sessionId}.`);
+        throw errorHandler.createValidationError(
+          `Impossibile eliminare la sessione ${sessionId}.`,
+          {
+            operation: 'delete_session',
+            component: 'CommandHandler',
+            metadata: { sessionId }
+          }
+        );
       }
 
       this.context.onOutput(`🗑️ **Sessione eliminata!**\n\n🆔 ID: ${sessionId}`);
     } catch (error) {
-      throw new Error(`Impossibile eliminare la sessione: ${error instanceof Error ? error.message : 'Errore sconosciuto'}`);
+      throw errorHandler.handleError(error as Error, {
+        operation: 'delete_session',
+        component: 'CommandHandler',
+        metadata: { sessionId }
+      });
     }
   }
 
@@ -446,7 +502,7 @@ Genera una risposta breve e utile (massimo 2-3 frasi) che riassuma i risultati i
 
       return response.content || fallbackMessage;
     } catch (error) {
-      console.error('Errore nella generazione della risposta LLM:', error);
+      logger.error('Errore nella generazione della risposta LLM:', error);
       if (loader) {
         loader.errorStep('generating', 'Errore nella generazione della risposta');
       }

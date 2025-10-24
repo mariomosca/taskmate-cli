@@ -26,7 +26,7 @@ describe('CostMonitor', () => {
   describe('recordUsage', () => {
     it('should record usage correctly', async () => {
       const result = await costMonitor.recordUsage(
-        'claude-3-sonnet-20240229',
+        'claude-sonnet-4-5-20250929',
         1000,
         500,
         'chat'
@@ -42,13 +42,13 @@ describe('CostMonitor', () => {
       expect(result.totalCost).toBeGreaterThan(0);
       expect(result.inputTokens).toBe(1000);
       expect(result.outputTokens).toBe(500);
-      expect(result.model).toBe('claude-3-sonnet-20240229');
+      expect(result.model).toBe('claude-sonnet-4-5-20250929');
       expect(result.operation).toBe('chat');
       expect(result.timestamp).toBeInstanceOf(Date);
     });
 
     it('should handle zero tokens', async () => {
-      const result = await costMonitor.recordUsage('claude-3-sonnet-20240229', 0, 0, 'chat');
+      const result = await costMonitor.recordUsage('claude-sonnet-4-5-20250929', 0, 0, 'chat');
 
       expect(result.totalCost).toBe(0);
       expect(result.inputTokens).toBe(0);
@@ -65,8 +65,8 @@ describe('CostMonitor', () => {
     });
 
     it('should accumulate costs correctly', async () => {
-      await costMonitor.recordUsage('claude-3-sonnet-20240229', 1000, 500, 'chat');
-      await costMonitor.recordUsage('claude-3-sonnet-20240229', 500, 250, 'completion');
+      await costMonitor.recordUsage('claude-sonnet-4-5-20250929', 1000, 500, 'chat');
+      await costMonitor.recordUsage('claude-sonnet-4-5-20250929', 500, 250, 'completion');
 
       const sessionCost = costMonitor.getCurrentSessionCost();
 

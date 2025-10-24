@@ -1,9 +1,12 @@
-import { Message, AppConfig } from '../types/index.js';
+import { Message } from '../types/index.js';
+import { TokenCounter } from './TokenCounter.js';
 import { LLMService } from './LLMService.js';
+import { logger } from '../utils/logger.js';
 import { DatabaseService } from './DatabaseService.js';
 import { TodoistAIService } from './TodoistAIService.js';
 import { PromptProcessor, SUMMARIZE_SESSION } from '../prompts/templates.js';
 import { ModelManager } from './ModelManager.js';
+import { errorHandler } from '../utils/ErrorHandler.js';
 
 /**
  * ContextManager - Manages conversation context and token calculations
@@ -133,10 +136,11 @@ export class ContextManager {
       };
     }
 
+    // Mantieni sempre gli ultimi 3 messaggi per continuità
+    const recentMessages = messages.slice(-3);
+    const messagesToSummarize = messages.slice(0, -3);
+
     try {
-      // Mantieni sempre gli ultimi 3 messaggi per continuità
-      const recentMessages = messages.slice(-3);
-      const messagesToSummarize = messages.slice(0, -3);
 
       if (messagesToSummarize.length === 0) {
         // Se abbiamo solo 3 messaggi o meno, non possiamo riassumere
@@ -181,7 +185,19 @@ export class ContextManager {
       };
 
     } catch (error) {
-      console.error('Errore durante il riassunto del contesto:', error);
+      const handledError = errorHandler.handleError(
+        error as Error,
+        {
+          operation: 'summarize_context',
+          component: 'ContextManager',
+          metadata: { 
+            messageCount: messages.length,
+            messagesToSummarize: messagesToSummarize.length 
+          }
+        }
+      );
+      
+      logger.error('Errore durante il riassunto del contesto:', handledError);
       
       // Fallback: mantieni solo gli ultimi 5 messaggi
       return {
@@ -269,7 +285,7 @@ export class ContextManager {
 
         hasTodoistContext = true;
       } catch (error) {
-        console.warn('Errore nel recupero del contesto Todoist:', error);
+        logger.warn('Errore nel recupero del contesto Todoist:', error);
       }
     }
 

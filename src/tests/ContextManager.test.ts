@@ -115,7 +115,10 @@ describe('ContextManager', () => {
       ];
 
       const enhanced = await contextManager.prepareEnhancedContext(messages);
-      expect(Array.isArray(enhanced)).toBe(true);
+      expect(enhanced).toHaveProperty('enhancedMessages');
+      expect(enhanced).toHaveProperty('contextInfo');
+      expect(Array.isArray(enhanced.enhancedMessages)).toBe(true);
+      expect(enhanced.contextInfo).toHaveProperty('hasTodoistContext');
     });
   });
 

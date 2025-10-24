@@ -44,25 +44,25 @@ describe('Integration Tests', () => {
   describe('Complete Workflow', () => {
     it('should handle a complete LLM interaction workflow', async () => {
       // Set up model
-      modelManager.setCurrentModel('claude-3-sonnet-20240229');
+      modelManager.setCurrentModel('claude-sonnet-4-5-20250929');
       
       // Verify model configuration
-      const config = modelManager.getModelConfig('claude-3-sonnet-20240229');
-      expect(config.name).toBe('Claude 3 Sonnet');
+      const config = modelManager.getModelConfig('claude-sonnet-4-5-20250929');
+      expect(config.name).toBe('Claude Sonnet 4.5');
       expect(config.contextWindow).toBeGreaterThan(0);
       
       // Test context management
       const messages: LLMMessage[] = [
         { role: 'user', content: 'Test context for integration' }
       ];
-      const optimizedContext = await contextManager.optimizeContext(messages, 0.3, 'claude-3-sonnet-20240229');
+      const optimizedContext = await contextManager.optimizeContext(messages, 0.3, 'claude-sonnet-4-5-20250929');
       expect(optimizedContext).toBeDefined();
       expect(optimizedContext.optimizedMessages).toBeDefined();
       expect(optimizedContext.optimizedMessages.length).toBeGreaterThan(0);
       
       // Simulate API usage recording
       await apiMetadataService.recordAPIUsage(
-        'claude-3-sonnet-20240229',
+        'claude-sonnet-4-5-20250929',
         'claude',
         'Test input',
         'Test output',
@@ -75,13 +75,13 @@ describe('Integration Tests', () => {
       
       // Record cost usage
       const usageRecord = await costMonitor.recordUsage(
-        'claude-3-sonnet-20240229',
+        'claude-sonnet-4-5-20250929',
         100,
         50,
         'integration-test'
       );
       
-      expect(usageRecord.model).toBe('claude-3-sonnet-20240229');
+      expect(usageRecord.model).toBe('claude-sonnet-4-5-20250929');
       expect(usageRecord.inputTokens).toBe(100);
       expect(usageRecord.outputTokens).toBe(50);
       expect(usageRecord.totalCost).toBeGreaterThan(0);
@@ -95,10 +95,10 @@ describe('Integration Tests', () => {
       expect(dailySummary.totalInputTokens).toBe(100);
       expect(dailySummary.totalOutputTokens).toBe(50);
       expect(dailySummary.operationCount).toBe(1);
-      expect(dailySummary.costByModel['claude-3-sonnet-20240229']).toBeGreaterThan(0);
+      expect(dailySummary.costByModel['claude-sonnet-4-5-20250929']).toBeGreaterThan(0);
       
       // Test API metadata - get performance report instead
-      const performanceReport = await apiMetadataService.getModelPerformanceReport('claude-3-sonnet-20240229');
+      const performanceReport = await apiMetadataService.getModelPerformanceReport('claude-sonnet-4-5-20250929');
       expect(performanceReport).toBeDefined();
       expect(performanceReport.calibration).toBeDefined();
       
@@ -162,16 +162,16 @@ describe('Integration Tests', () => {
       // Test with invalid model
       modelManager.setCurrentModel('invalid-model');
       const config = modelManager.getModelConfig('invalid-model');
-      expect(config.name).toBe('invalid-model');
+      expect(config.name).toBe('Unknown Model');
       expect(config.contextWindow).toBe(8192); // Default value
       
       // Test cost monitoring with zero tokens
-      const usageRecord = await costMonitor.recordUsage('claude-3-sonnet-20240229', 0, 0, 'test');
+      const usageRecord = await costMonitor.recordUsage('claude-sonnet-4-5-20250929', 0, 0, 'test');
       expect(usageRecord.totalCost).toBe(0);
       
       // Test API metadata with failed request
       await apiMetadataService.recordAPIUsage(
-        'claude-3-sonnet-20240229',
+        'claude-sonnet-4-5-20250929',
         'claude',
         'Failed input',
         'Failed output',

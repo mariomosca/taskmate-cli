@@ -6,6 +6,8 @@ import { ContentArea } from './components/ContentArea.js';
 import { SessionSelector } from './components/SessionSelector.js';
 import { ContextIndicator } from './components/ContextIndicator.js';
 import { SessionManager } from './services/SessionManager.js';
+import { CostMonitor } from './services/CostMonitor.js';
+import { ContextManager } from './services/ContextManager.js';
 import { llmService } from './services/LLMService.js';
 import { TodoistService } from './services/TodoistService.js';
 import { TodoistAIService } from './services/TodoistAIService.js';
@@ -60,7 +62,7 @@ export const App: React.FC = () => {
     try {
       await sessionManager.addMessage(message);
     } catch (error) {
-      console.error('Errore nel salvare il messaggio di sistema nella sessione:', error);
+      logger.error('Errore nel salvare il messaggio di sistema nella sessione:', error);
     }
   };
 
@@ -212,11 +214,11 @@ export const App: React.FC = () => {
           setCostInfo('$0.0000');
         }
       } catch (costError) {
-        console.error('Error getting cost info:', costError);
+        logger.error('Error getting cost info:', costError);
         setCostInfo('$0.0000');
       }
     } catch (error) {
-      console.error('Error updating context info:', error);
+      logger.error('Error updating context info:', error);
     }
   };
 

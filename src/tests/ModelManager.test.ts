@@ -10,7 +10,7 @@ describe('ModelManager', () => {
   describe('getCurrentModel', () => {
     it('should return default model initially', () => {
       const currentModel = modelManager.getCurrentModel();
-      expect(currentModel).toBe('claude-3-sonnet-20240229');
+      expect(currentModel).toBe('claude-sonnet-4-5-20250929');
     });
   });
 
@@ -28,7 +28,7 @@ describe('ModelManager', () => {
 
   describe('getModelConfig', () => {
     it('should return config for valid model', () => {
-      const config = modelManager.getModelConfig('claude-3-sonnet-20240229');
+      const config = modelManager.getModelConfig('claude-sonnet-4-5-20250929');
       
       expect(config).toBeDefined();
       expect(config.contextWindow).toBeGreaterThan(0);
@@ -41,7 +41,7 @@ describe('ModelManager', () => {
     it('should return default config for invalid model', () => {
       const config = modelManager.getModelConfig('invalid-model');
       expect(config).toBeDefined();
-      expect(config.name).toBe('invalid-model');
+      expect(config.name).toBe('Unknown Model');
     });
   });
 
@@ -76,14 +76,14 @@ describe('ModelManager', () => {
 
   describe('calculateCost', () => {
     it('should calculate cost correctly', () => {
-      const cost = modelManager.calculateCost(1000, 500, 'claude-3-sonnet-20240229');
+      const cost = modelManager.calculateCost(1000, 500, 'claude-sonnet-4-5-20250929');
       
       expect(typeof cost).toBe('number');
       expect(cost).toBeGreaterThan(0);
     });
 
     it('should handle zero tokens', () => {
-      const cost = modelManager.calculateCost(0, 0, 'claude-3-sonnet-20240229');
+      const cost = modelManager.calculateCost(0, 0, 'claude-sonnet-4-5-20250929');
       expect(cost).toBe(0);
     });
   });
@@ -119,12 +119,12 @@ describe('ModelManager', () => {
 
   describe('supportsFeature', () => {
     it('should detect vision capability', () => {
-      const hasVision = modelManager.supportsFeature('vision', 'claude-3-sonnet-20240229');
+      const hasVision = modelManager.supportsFeature('vision', 'claude-sonnet-4-5-20250929');
       expect(typeof hasVision).toBe('boolean');
     });
 
     it('should detect function calling capability', () => {
-      const hasFunctionCalling = modelManager.supportsFeature('function_calling', 'claude-3-sonnet-20240229');
+      const hasFunctionCalling = modelManager.supportsFeature('function_calling', 'claude-sonnet-4-5-20250929');
       expect(typeof hasFunctionCalling).toBe('boolean');
     });
   });
@@ -159,7 +159,7 @@ describe('ModelManager', () => {
 
   describe('getModelInfo', () => {
     it('should return detailed model information', () => {
-      const info = modelManager.getModelInfo('claude-3-sonnet-20240229');
+      const info = modelManager.getModelInfo('claude-sonnet-4-5-20250929');
       
       expect(info).toHaveProperty('config');
       expect(info).toHaveProperty('isCurrentModel');
@@ -171,7 +171,7 @@ describe('ModelManager', () => {
 
   describe('validateModel', () => {
     it('should validate existing model', () => {
-      const result = modelManager.validateModel('claude-3-sonnet-20240229');
+      const result = modelManager.validateModel('claude-sonnet-4-5-20250929');
       
       expect(result).toHaveProperty('isValid');
       expect(result).toHaveProperty('exists');
