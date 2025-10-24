@@ -12,8 +12,11 @@ import { TodoistAIService } from './services/TodoistAIService.js';
 import { DatabaseService } from './services/DatabaseService.js';
 import { CommandHandler, CommandContext, LoadingStep } from './services/CommandHandler.js';
 import { Message } from './types/index.js';
+import { logger } from './utils/logger.js';
 
 export const App: React.FC = () => {
+  logger.debug('App component initializing...');
+  
   const { exit } = useApp();
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -21,18 +24,24 @@ export const App: React.FC = () => {
   const [loadingSteps, setLoadingSteps] = useState<LoadingStep[]>([]);
   const [showSplash, setShowSplash] = useState(true);
   const [splashCompleted, setSplashCompleted] = useState(false);
+  
+  logger.debug('Creating DatabaseService...');
   const [databaseService] = useState(() => new DatabaseService());
   
+  logger.debug('Creating TodoistService...');
   const [todoistService] = useState(() => new TodoistService({
     apiKey: process.env.TODOIST_API_KEY || '',
     baseUrl: 'https://api.todoist.com/rest/v2'
   }));
   
+  logger.debug('Creating TodoistAIService...');
   const [todoistAIService] = useState(() => new TodoistAIService(todoistService));
   
+  logger.debug('Creating SessionManager...');
   const [sessionManager] = useState(() => {
     const manager = new SessionManager(undefined, databaseService);
     // Configure LLMService and ContextManager with TodoistAIService
+    logger.debug('Configuring LLMService with TodoistAIService...');
     llmService.setTodoistAIService(todoistAIService);
     manager.getContextManager().setTodoistAIService(todoistAIService);
     return manager;
@@ -358,7 +367,7 @@ export const App: React.FC = () => {
           <SplashScreen 
             keepVisible={true}
             onComplete={() => setSplashCompleted(true)}
-            currentProvider={sessionManager.getCurrentSession()?.llmProvider || 'claude'}
+            currentModel={llmService.getCurrentModel()}
           />
           {showSessionSelector && splashCompleted && (
             <SessionSelector

@@ -95,7 +95,7 @@ export const SessionSelector: React.FC<SessionSelectorProps> = ({
       </Text>
       <Text color="gray">
         Usa ↑/↓ per navigare, INVIO per selezionare, ESC per annullare
-        {(hasMore || currentPage > 0) && ', ←/→ per cambiare pagina'}
+        {(hasMore || currentPage > 0) ? ', ←/→ per cambiare pagina' : ''}
       </Text>
       {totalSessions > 0 && (
         <Text color="yellow">
@@ -134,7 +134,7 @@ export const SessionSelector: React.FC<SessionSelectorProps> = ({
         <Box marginTop={1}>
           <Text color="gray">
             {currentPage > 0 ? '← Pagina precedente' : ''}
-            {currentPage > 0 && hasMore ? ' | ' : ''}
+            {(currentPage > 0 && hasMore) ? ' | ' : ''}
             {hasMore ? 'Pagina successiva →' : ''}
           </Text>
         </Box>

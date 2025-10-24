@@ -12,15 +12,10 @@ interface SplashScreenProps {
   onComplete?: () => void;
   duration?: number;
   keepVisible?: boolean;
-  currentProvider?: 'claude' | 'gemini';
+  currentModel?: string;
 }
 
-export const SplashScreen: React.FC<SplashScreenProps> = ({ 
-  onComplete, 
-  duration = 3000,
-  keepVisible = false,
-  currentProvider = 'claude'
-}) => {
+export const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete, duration = 3000, keepVisible = false, currentModel }) => {
   const [currentStep, setCurrentStep] = useState(0);
   const [isCompleted, setIsCompleted] = useState(false);
   const [showCompletionMessage, setShowCompletionMessage] = useState(false);
@@ -110,7 +105,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
 
       <Box marginBottom={1}>
         <Text color="cyan">
-          🤖 Provider: {currentProvider.charAt(0).toUpperCase() + currentProvider.slice(1)}
+          🤖 Model: {currentModel}
         </Text>
       </Box>
 

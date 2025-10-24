@@ -17,8 +17,8 @@ export class ModelManager {
   private currentModel: string;
 
   constructor(defaultModel?: string) {
-    // Initialize current model: use provided default, env variable, or fallback to claude-sonnet-4-5
-    this.currentModel = defaultModel || process.env.DEFAULT_MODEL || 'claude-sonnet-4-5';
+    // Initialize current model: use provided default, env variable, or fallback to claude-sonnet-4-5-20250929
+    this.currentModel = defaultModel || process.env.DEFAULT_MODEL || 'claude-sonnet-4-5-20250929';
   }
 
   /**

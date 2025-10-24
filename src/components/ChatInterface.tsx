@@ -3,6 +3,7 @@ import { Box, Text, useInput } from 'ink';
 import { SessionManager } from '../services/SessionManager.js';
 import { llmService } from '../services/LLMService.js';
 import { Message } from '../types/index.js';
+import { logger } from '../utils/logger.js';
 
 interface ChatInterfaceProps {
   sessionManager: SessionManager;
@@ -29,6 +30,8 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
   });
 
   const sendMessage = async (content: string) => {
+    logger.debug('ChatInterface.sendMessage called', { content: content.trim() });
+    
     if (!content.trim() || state.isLoading) return;
 
     const userMessage: Message = {
@@ -39,6 +42,8 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
       metadata: {}
     };
 
+    logger.debug('User message created', { messageId: userMessage.id });
+
     setState(prev => ({
       ...prev,
       messages: [...prev.messages, userMessage],
@@ -48,6 +53,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
     }));
 
     try {
+      logger.debug('Adding message to session...');
       // Aggiungi il messaggio alla sessione
       await sessionManager.addMessage(userMessage);
 
@@ -57,16 +63,22 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
         content: msg.content
       }));
 
+      logger.debug('LLM messages prepared', { messageCount: llmMessages.length });
+
       // Aggiungi il contesto della sessione se disponibile
       if (sessionContext && state.messages.length === 0) {
         llmMessages.unshift({
           role: 'system' as const,
           content: `Contesto della sessione precedente: ${sessionContext}`
         });
+        logger.debug('Session context added to messages');
       }
 
       // Ottieni la risposta dall'LLM
+      logger.debug('Calling llmService.chat...');
       const response = await llmService.chat(llmMessages);
+      
+      logger.debug('LLM response received', { contentLength: response.content.length });
 
       const assistantMessage: Message = {
         id: `msg_${Date.now()}_assistant`,

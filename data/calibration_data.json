@@ -1,29 +1,11 @@
 [
   {
-    "model": "claude-3-sonnet-20240229",
+    "model": "claude-sonnet-4-5-20250929",
     "provider": "claude",
-    "inputTokenRatio": 1.0526315789473684,
-    "outputTokenRatio": 1.0416666666666667,
-    "sampleCount": 4,
-    "lastUpdated": "2025-10-24T07:24:37.050Z",
-    "confidence": 0.2
-  },
-  {
-    "model": "gemini-1.5-pro",
-    "provider": "gemini",
-    "inputTokenRatio": 1.0526315789473684,
-    "outputTokenRatio": 1.0416666666666667,
-    "sampleCount": 2,
-    "lastUpdated": "2025-10-24T07:24:37.053Z",
-    "confidence": 0.1
-  },
-  {
-    "model": "claude-sonnet-4-5",
-    "provider": "claude",
-    "inputTokenRatio": 1284.1307291666665,
-    "outputTokenRatio": 0.00605859375,
-    "sampleCount": 4,
-    "lastUpdated": "2025-10-24T08:39:06.843Z",
-    "confidence": 0.2
+    "inputTokenRatio": 1411.0523186409546,
+    "outputTokenRatio": 0.0035241477272727278,
+    "sampleCount": 22,
+    "lastUpdated": "2025-10-24T10:33:24.123Z",
+    "confidence": 0.95
   }
 ]

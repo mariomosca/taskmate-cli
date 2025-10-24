@@ -6,6 +6,7 @@ import { EnhancedContextManager } from './EnhancedContextManager.js';
 import { CostMonitor } from './CostMonitor.js';
 import { APIMetadataService } from './APIMetadataService.js';
 import { ModelManager } from './ModelManager.js';
+import { logger } from '../utils/logger.js';
 
 export interface LLMMessage {
   role: 'user' | 'assistant' | 'system';
@@ -43,21 +44,38 @@ export class LLMService {
   private modelManager: ModelManager;
 
   constructor(todoistAIService?: TodoistAIService) {
+    logger.debug('LLMService constructor starting...');
+    
     this.defaultProvider = process.env.DEFAULT_LLM_PROVIDER || 'claude';
+    logger.debug(`LLMService defaultProvider set to: ${this.defaultProvider}`);
+    
     this.todoistAIService = todoistAIService;
     
     const anthropicKey = process.env.CLAUDE_API_KEY || process.env.ANTHROPIC_API_KEY;
+    logger.debug(`Anthropic key available: ${!!anthropicKey}`);
+    
     if (anthropicKey) {
+      logger.debug('Initializing Anthropic client...');
       this.anthropic = new Anthropic({
         apiKey: anthropicKey,
       });
+      logger.debug('Anthropic client initialized successfully');
     }
     
     // Initialize enhanced services
-    this.modelManager = new ModelManager();
+    logger.debug('Initializing ModelManager...');
+    this.modelManager = new ModelManager(process.env.DEFAULT_MODEL);
+    
+    logger.debug('Initializing EnhancedContextManager...');
     this.enhancedContextManager = new EnhancedContextManager(undefined, this.modelManager);
+
+    logger.debug('Initializing CostMonitor...');
     this.costMonitor = new CostMonitor(this.modelManager);
+    
+    logger.debug('Initializing APIMetadataService...');
     this.apiMetadataService = new APIMetadataService();
+    
+    logger.debug('LLMService constructor completed successfully');
   }
 
   /**
@@ -69,13 +87,21 @@ export class LLMService {
 
   async chat(messages: LLMMessage[], provider?: string): Promise<LLMResponse> {
     const selectedProvider = provider || this.defaultProvider;
+    logger.debug('Chat method called', {
+      provider,
+      defaultProvider: this.defaultProvider,
+      selectedProvider
+    });
 
     switch (selectedProvider) {
       case 'claude':
+        logger.debug('Using Claude provider');
         return this.chatWithClaude(messages);
       case 'gemini':
+        logger.debug('Using Gemini provider');
         return this.chatWithGemini(messages);
       default:
+        logger.error(`Provider ${selectedProvider} non supportato`);
         throw new Error(`Provider ${selectedProvider} non supportato`);
     }
   }
@@ -86,19 +112,29 @@ export class LLMService {
   async chatWithTools(messages: LLMMessage[], provider?: string): Promise<LLMResponse> {
     if (!this.todoistAIService) {
       // Fallback to regular chat if no Todoist service
+      logger.debug('No Todoist service, falling back to regular chat');
       return this.chat(messages, provider);
     }
 
     const selectedProvider = provider || this.defaultProvider;
+    logger.debug('ChatWithTools called', {
+      hasTodoistService: !!this.todoistAIService,
+      provider,
+      defaultProvider: this.defaultProvider,
+      selectedProvider
+    });
 
     switch (selectedProvider) {
       case 'claude':
+        logger.debug('Using Claude provider with tools');
         return this.chatWithClaudeTools(messages);
       case 'gemini':
         // Gemini function calling implementation would go here
         // For now, fallback to regular chat
+        logger.debug('Using Gemini provider (fallback to regular chat)');
         return this.chatWithGemini(messages);
       default:
+        logger.error(`Provider ${selectedProvider} non supportato in chatWithTools`);
         throw new Error(`Provider ${selectedProvider} non supportato`);
     }
   }
@@ -135,24 +171,63 @@ export class LLMService {
     console.log(`[DEBUG] Using model: ${currentModel}, context window: ${modelConfig.contextWindow}`);
 
     try {
-      const response = await this.anthropic.messages.create({
+      const stream = await this.anthropic.messages.create({
         model: currentModel,
-        max_tokens: parseInt(process.env.CLAUDE_MAX_TOKENS || modelConfig.maxOutputTokens.toString()),
-        temperature: parseFloat(process.env.CLAUDE_TEMPERATURE || '0.7'),
+        max_tokens: modelConfig.maxOutputTokens,
+        temperature: 0.7,
         system: systemContent || undefined,
         messages: conversationMessages.map(msg => ({
           role: msg.role as 'user' | 'assistant',
           content: msg.content
-        }))
+        })),
+        stream: true
       });
 
-      const content = response.content[0];
-      if (content.type === 'text') {
+      let fullContent = '';
+      let inputTokens = 0;
+      let outputTokens = 0;
+
+      // Process the streaming response
+      for await (const chunk of stream) {
+        if (chunk.type === 'message_start') {
+          inputTokens = chunk.message.usage.input_tokens;
+        } else if (chunk.type === 'content_block_delta') {
+          if (chunk.delta.type === 'text_delta') {
+            fullContent += chunk.delta.text;
+          }
+        } else if (chunk.type === 'message_delta') {
+          if (chunk.usage) {
+            outputTokens = chunk.usage.output_tokens;
+          }
+        }
+      }
+
+      // Debug logging per vedere la risposta completa di Claude
+      logger.debug('Claude API Streaming Response', {
+        fullContent,
+        contentLength: fullContent.length,
+        inputTokens,
+        outputTokens
+      });
+      
+      logger.debug('Claude streaming response completed', {
+        contentLength: fullContent.length,
+        inputTokens,
+        outputTokens
+      });
+
+      if (fullContent) {
+        logger.debug('Claude text response details', {
+          textValue: fullContent,
+          textType: typeof fullContent,
+          textLength: fullContent.length
+        });
+        
         return {
-          content: content.text,
+          content: fullContent,
           usage: {
-            input_tokens: response.usage.input_tokens,
-            output_tokens: response.usage.output_tokens
+            input_tokens: inputTokens,
+            output_tokens: outputTokens
           }
         };
       }
@@ -245,14 +320,69 @@ export class LLMService {
     try {
       const response = await this.anthropic.messages.create({
         model: currentModel,
-        max_tokens: Math.min(modelConfig?.maxOutputTokens || 4096, parseInt(process.env.CLAUDE_MAX_TOKENS || '4096')),
-        temperature: parseFloat(process.env.CLAUDE_TEMPERATURE || '0.7'),
+        max_tokens: modelConfig.maxOutputTokens,
+        temperature: 0.7,
         system: enhancedSystemContent,
         tools: claudeTools,
         messages: conversationMessages.map(msg => ({
           role: msg.role as 'user' | 'assistant',
           content: msg.content
-        }))
+        })),
+        stream: true
+      });
+
+      // Handle streaming response for initial call
+      let fullContent = '';
+      let inputTokens = 0;
+      let outputTokens = 0;
+      const content: any[] = [];
+
+      for await (const chunk of response) {
+        if (chunk.type === 'content_block_start') {
+          content.push(chunk.content_block);
+        } else if (chunk.type === 'content_block_delta') {
+          if (chunk.delta.type === 'text_delta') {
+            fullContent += chunk.delta.text;
+            // Update the text content in the content array
+            const textBlock = content.find(c => c.type === 'text');
+            if (textBlock) {
+              textBlock.text = (textBlock.text || '') + chunk.delta.text;
+            }
+          } else if (chunk.delta.type === 'input_json_delta') {
+            // Handle tool use input accumulation
+            const toolBlock = content.find(c => c.type === 'tool_use' && c.id === chunk.index);
+            if (toolBlock) {
+              toolBlock.input = (toolBlock.input || '') + chunk.delta.partial_json;
+            }
+          }
+        } else if (chunk.type === 'message_start') {
+          inputTokens = chunk.message.usage.input_tokens;
+        } else if (chunk.type === 'message_delta' && chunk.usage) {
+          outputTokens = chunk.usage.output_tokens;
+        }
+      }
+
+      // Parse tool use inputs that were accumulated as JSON strings
+      for (const block of content) {
+        if (block.type === 'tool_use' && typeof block.input === 'string') {
+          try {
+            block.input = JSON.parse(block.input);
+          } catch (e) {
+            logger.error('Failed to parse tool input JSON', { input: block.input, error: e });
+          }
+        }
+      }
+
+      // Create a response object that matches the expected structure
+      const processedResponse = {
+        content,
+        usage: { input_tokens: inputTokens, output_tokens: outputTokens }
+      };
+
+      // Debug logging per la risposta iniziale di Claude con tools
+      logger.debug('Initial Claude response with tools', {
+        fullResponse: processedResponse,
+        contentArray: processedResponse.content
       });
 
       // Gestisci tool calls se presenti
@@ -260,7 +390,7 @@ export class LLMService {
       const toolResults: ToolResult[] = [];
       let hasToolCalls = false;
 
-      for (const content of response.content) {
+      for (const content of processedResponse.content) {
         if (content.type === 'tool_use') {
           hasToolCalls = true;
           toolCalls.push({
@@ -303,7 +433,7 @@ export class LLMService {
            })),
            {
              role: 'assistant' as const,
-             content: response.content.find(c => c.type === 'text')?.text || 'Sto eseguendo le operazioni richieste...'
+             content: processedResponse.content.find((c: any) => c.type === 'text')?.text || 'Sto eseguendo le operazioni richieste...'
            },
            {
              role: 'user' as const,
@@ -312,18 +442,45 @@ export class LLMService {
          ];
 
         const followUpResponse = await this.anthropic.messages.create({
-          model: process.env.CLAUDE_MODEL || 'claude-3-sonnet-20240229',
-          max_tokens: parseInt(process.env.CLAUDE_MAX_TOKENS || '4096'),
-          temperature: parseFloat(process.env.CLAUDE_TEMPERATURE || '0.7'),
+          model: currentModel,
+          max_tokens: modelConfig.maxOutputTokens,
+          temperature: 0.7,
           system: enhancedSystemContent,
-          messages: followUpMessages
+          messages: followUpMessages,
+          stream: true
         });
 
-        const finalContent = followUpResponse.content.find(c => c.type === 'text')?.text || 'Operazione completata.';
+        // Handle streaming response for follow-up
+        let followUpContent = '';
+        let followUpInputTokens = 0;
+        let followUpOutputTokens = 0;
+
+        for await (const chunk of followUpResponse) {
+          if (chunk.type === 'content_block_delta' && chunk.delta.type === 'text_delta') {
+            followUpContent += chunk.delta.text;
+          } else if (chunk.type === 'message_start') {
+            followUpInputTokens = chunk.message.usage.input_tokens;
+          } else if (chunk.type === 'message_delta' && chunk.usage) {
+            followUpOutputTokens = chunk.usage.output_tokens;
+          }
+        }
+
+        // Debug logging per la risposta di follow-up
+        logger.debug('Claude follow-up response', {
+          followUpContent,
+          followUpInputTokens,
+          followUpOutputTokens
+        });
+
+        const finalContent = followUpContent || 'Operazione completata.';
+        logger.debug('Final content from follow-up', {
+          finalContent,
+          finalContentType: typeof finalContent
+        });
         
         const totalUsage = {
-          input_tokens: response.usage.input_tokens + followUpResponse.usage.input_tokens,
-          output_tokens: response.usage.output_tokens + followUpResponse.usage.output_tokens
+          input_tokens: processedResponse.usage.input_tokens + followUpInputTokens,
+          output_tokens: processedResponse.usage.output_tokens + followUpOutputTokens
         };
 
         // Record usage for cost monitoring and API metadata
@@ -347,7 +504,11 @@ export class LLMService {
       }
 
       // Se non ci sono tool calls, restituisci la risposta normale
-      const responseContent = response.content.find(c => c.type === 'text')?.text || '';
+      const responseContent = processedResponse.content.find((c: any) => c.type === 'text')?.text || '';
+      logger.debug('Normal response content', {
+        responseContent,
+        responseContentType: typeof responseContent
+      });
       
       // Record usage for cost monitoring and API metadata
       await this.recordUsageAndMetadata(
@@ -355,8 +516,8 @@ export class LLMService {
         'claude',
         messages,
         responseContent,
-        response.usage.input_tokens,
-        response.usage.output_tokens,
+        processedResponse.usage.input_tokens,
+        processedResponse.usage.output_tokens,
         estimatedInputTokens,
         estimatedOutputTokens,
         'chat'
@@ -365,8 +526,8 @@ export class LLMService {
       return {
         content: responseContent,
         usage: {
-          input_tokens: response.usage.input_tokens,
-          output_tokens: response.usage.output_tokens
+          input_tokens: processedResponse.usage.input_tokens,
+          output_tokens: processedResponse.usage.output_tokens
         },
         toolCalls
       };

@@ -17,7 +17,7 @@ export const ProgressiveLoader: React.FC<ProgressiveLoaderProps> = ({ steps }) =
   return (
     <Box flexDirection="column">
       {steps.map((step, index) => (
-        <Box key={step.id} marginBottom={step.status === 'completed' && step.result ? 1 : 0}>
+        <Box key={step.id} marginBottom={(step.status === 'completed' && step.result) ? 1 : 0}>
           <Box>
             {step.status === 'loading' && (
               <Box marginRight={1}>

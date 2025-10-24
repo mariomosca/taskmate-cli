@@ -195,7 +195,7 @@ export class EnhancedContextManager {
     config: ModelConfig;
     estimatedCost: number;
   } | null> {
-    const currentTokens = await this.tokenCounter.countMessagesTokens(messages, 'claude-3-sonnet-20240229');
+    const currentTokens = await this.tokenCounter.countMessagesTokens(messages, 'claude-3-5-haiku-20241022');
     
     const optimalModel = this.modelManager.getOptimalModel({
       minContextWindow: currentTokens.tokens * 1.2, // 20% buffer
@@ -213,7 +213,7 @@ export class EnhancedContextManager {
     return {
       recommendedModel: Object.keys(this.modelManager.getAvailableModels()).find(key => 
         this.modelManager.getModelConfig(key).name === optimalModel.name
-      ) || 'claude-3-sonnet-20240229',
+      ) || 'claude-3-5-haiku-20241022',
       reason: `Optimal balance of context window (${optimalModel.contextWindow.toLocaleString()}) and cost ($${optimalModel.costPer1kInputTokens}/1k tokens)`,
       config: optimalModel,
       estimatedCost

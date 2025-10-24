@@ -56,7 +56,7 @@ const TaskTable = ({ tasks }: TaskTableProps) => {
             <Text>{task.id}</Text>
           </Box>
           <Box width={prioWidth}>
-            <Text color="red">{'●'.repeat(task.priority)}</Text>
+            <Text color="red">{task.priority > 0 ? '●'.repeat(task.priority) : '-'}</Text>
           </Box>
           <Box width={contentWidth}>
             <Text>{task.content.length > contentWidth - 3 ? task.content.substring(0, contentWidth - 3) + '...' : task.content}</Text>

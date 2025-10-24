@@ -3,6 +3,7 @@ import { Box, Text } from 'ink';
 import { Message } from '../types/index.js';
 import { LoadingStep } from '../services/CommandHandler.js';
 import { LoadingIndicator } from './LoadingIndicator.js';
+import { logger } from '../utils/logger.js';
 import figures from 'figures';
 
 interface ContentAreaProps {
@@ -20,10 +21,38 @@ export const ContentArea = ({
   loadingMessage = 'Elaborazione in corso...',
   loadingSteps
 }: ContentAreaProps) => {
+  // Log dettagliato ogni volta che il componente viene renderizzato
+  logger.debug('ContentArea render', {
+    messagesCount: messages.length,
+    isLoading,
+    loadingMessage,
+    loadingStepsCount: loadingSteps?.length || 0,
+    messages: messages.map(msg => ({
+      id: msg.id,
+      role: msg.role,
+      contentLength: msg.content?.length || 0,
+      contentPreview: msg.content?.substring(0, 50) || '(empty)',
+      hasMetadata: !!msg.metadata,
+      timestamp: msg.timestamp
+    }))
+  });
   const renderMessage = (message: Message) => {
     const isUser = message.role === 'user';
     const icon = isUser ? figures.arrowRight : '';
     const color = isUser ? 'cyan' : 'green';
+    
+    // Log dettagliato per ogni messaggio renderizzato
+    logger.debug('Rendering message', {
+      messageId: message.id,
+      role: message.role,
+      isUser,
+      contentType: typeof message.content,
+      contentLength: message.content?.length || 0,
+      contentIsEmpty: !message.content || message.content === '',
+      contentValue: message.content,
+      hasMetadata: !!message.metadata,
+      processingTime: message.metadata?.processingTime
+    });
     
     return (
       <Box key={message.id} flexDirection="column" marginBottom={1}>
@@ -35,16 +64,11 @@ export const ContentArea = ({
         )}
         
         <Box paddingLeft={isUser ? 3 : 0}>
-          <Text color={isUser ? 'white' : 'green'}>{message.content}</Text>
+          <Text color={isUser ? 'white' : 'green'}>
+            {message.content || '(messaggio vuoto)'}
+          </Text>
         </Box>
         
-        {message.metadata && message.metadata.processingTime && (
-          <Box paddingLeft={3} marginTop={0}>
-            <Text color="gray" dimColor>
-              {message.metadata.processingTime}ms
-            </Text>
-          </Box>
-        )}
       </Box>
     );
   };
