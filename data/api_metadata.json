@@ -130,5 +130,41 @@
     "inputText": "ciao",
     "outputText": "Ciao! 👋 \n\nVedo che hai parecchie cose in ballo su Todoist:\n- **62 task totali** con 17 in ritardo e 5 in scadenza oggi\n- Diversi progetti attivi tra cui Corporate Track, Personal Revenue, Personal Foundation e Growth & Learning\n\nCome posso aiutarti oggi? Vuoi:\n- Rivedere le task urgenti o in scadenza?\n- Creare nuove task o progetti?\n- Completare o aggiornare qualcosa?\n- Fare un check generale della tua situazione?\n\nDimmi pure! 😊",
     "operation": "chat"
+  },
+  {
+    "timestamp": "2025-10-24T08:30:33.730Z",
+    "model": "claude-sonnet-4-5",
+    "provider": "claude",
+    "actualInputTokens": 9061,
+    "actualOutputTokens": 479,
+    "estimatedInputTokens": 32,
+    "estimatedOutputTokens": 64000,
+    "inputText": "recupera i miei task di oggi e identifica anche quelli con data di completamento o goal scaduti",
+    "outputText": "Ecco un riepilogo chiaro dei tuoi task:\n\n**TASK DI OGGI (23 ottobre):**\n1. 🏠 Attività Foundation:\n   - Routine C5AM (5:15)\n   - Process Email quotidiano\n   - Review calendario tomorrow (17:00)\n   - Weekly Surf Review (18:00)\n\n2. 🚀 Progetti NutriMentor (Testing):\n   - 9:00 - Creare Testing Checklist dettagliata\n   - 10:00 - Testing Auth flow\n   - 14:00 - Testing Patient CRUD\n   - 16:00 - Testing Diet creation\n\n3. 📔 JournalAI:\n   - Testing Auth flow\n\n4. 📈 Altri task importanti:\n   - Aggiorname",
+    "operation": "chat_with_tools"
+  },
+  {
+    "timestamp": "2025-10-24T08:37:08.546Z",
+    "model": "claude-sonnet-4-5",
+    "provider": "claude",
+    "actualInputTokens": 19786,
+    "actualOutputTokens": 455,
+    "estimatedInputTokens": 6,
+    "estimatedOutputTokens": 64000,
+    "inputText": "mostra i miei task",
+    "outputText": "Ecco un riepilogo organizzato dei tuoi task:\n\n📅 TASK PER OGGI (23 ottobre):\n- 🏠 Routine C5AM: meditazione, journaling, esercizi (5:15)\n- 📚 Knowledge Capture System (5:00)\n- 🌐 Update mariomosca.com\n- 📚 Skills development review\n- 🥗 Testing checklist Nutrimentor (9:00)\n- 📅 Review calendario tomorrow (17:00)\n- ✍️ Scrivi 10 righe codice/testo\n- 📊 CTO Revenue tracking Q3/Q4\n- 📔 Testing TypeScript per JournalAI\n\n🔜 PROSSIMI GIORNI IMPORTANTI:\n- 24 ottobre: 📧 Process Email quotidiano\n- 25 ott",
+    "operation": "chat_with_tools"
+  },
+  {
+    "timestamp": "2025-10-24T08:39:06.841Z",
+    "model": "claude-sonnet-4-5",
+    "provider": "claude",
+    "actualInputTokens": 4177,
+    "actualOutputTokens": 462,
+    "estimatedInputTokens": 10,
+    "estimatedOutputTokens": 64000,
+    "inputText": "analizza i miei task di oggi",
+    "outputText": "Ecco l'analisi dei tuoi task per oggi:\n\n**📋 Hai 5 task pianificati per oggi:**\n\n⏰ Task con orario specifico:\n1. 09:00 - 🥗 [NUTRIMENTOR W1] Testing: Payment integration Stripe (test mode) ⚠️ Priorità alta\n2. 09:15 - 📧 Process Email quotidiano [20m] \n3. 11:00 - 🥗 [NUTRIMENTOR W1] Testing: Email notifications ⚠️ Priorità alta\n4. 14:00 - 🥗 [NUTRIMENTOR W1] Testing: Mobile responsive check ⚠️ Priorità alta\n\n📅 Task senza orario specifico:\n5. 📔 [JOURNALAI W1] Testing TypeScript: Journal entry CR",
+    "operation": "chat_with_tools"
   }
 ]

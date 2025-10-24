@@ -12,12 +12,14 @@ interface SplashScreenProps {
   onComplete?: () => void;
   duration?: number;
   keepVisible?: boolean;
+  currentProvider?: 'claude' | 'gemini';
 }
 
 export const SplashScreen: React.FC<SplashScreenProps> = ({ 
   onComplete, 
   duration = 3000,
-  keepVisible = false
+  keepVisible = false,
+  currentProvider = 'claude'
 }) => {
   const [currentStep, setCurrentStep] = useState(0);
   const [isCompleted, setIsCompleted] = useState(false);
@@ -103,6 +105,12 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
       <Box marginBottom={1}>
         <Text color="gray">
           v0.1.0 - Versione Minimal
+        </Text>
+      </Box>
+
+      <Box marginBottom={1}>
+        <Text color="cyan">
+          🤖 Provider: {currentProvider.charAt(0).toUpperCase() + currentProvider.slice(1)}
         </Text>
       </Box>
 

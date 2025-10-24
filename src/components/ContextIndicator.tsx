@@ -6,12 +6,14 @@ import { Box, Text } from 'ink';
 interface ContextIndicatorProps {
   contextInfo: string | null;
   contextDescription: string | null;
+  costInfo?: string | null;
   position?: 'top-right' | 'bottom-right' | 'above-input';
 }
 
 export const ContextIndicator = ({
   contextInfo,
   contextDescription,
+  costInfo,
   position = 'above-input'
 }: ContextIndicatorProps) => {
   
@@ -32,7 +34,9 @@ export const ContextIndicator = ({
 
   // Simple display text without icons
   const percentage = getContextPercentage(contextInfo);
-  const displayText = contextInfo || `0% (0/?)`;
+  const contextText = contextInfo || `0% (0/?)`;
+  const costText = costInfo || '$0.0000';
+  const displayText = `${contextText} | ${costText}`;
   const textColor = getContextColor(percentage);
 
   const getPositionStyles = () => {

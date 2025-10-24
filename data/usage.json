@@ -9,5 +9,38 @@
     "totalCost": 0.009153,
     "operation": "chat",
     "sessionId": "session_1761294038905_yo010pu2c"
+  },
+  {
+    "timestamp": "2025-10-24T08:30:33.725Z",
+    "model": "claude-sonnet-4-5",
+    "inputTokens": 9061,
+    "outputTokens": 479,
+    "inputCost": 0.027183,
+    "outputCost": 0.0071849999999999995,
+    "totalCost": 0.034367999999999996,
+    "operation": "chat_with_tools",
+    "sessionId": "session_1761294550426_8gc2xqukr"
+  },
+  {
+    "timestamp": "2025-10-24T08:37:08.544Z",
+    "model": "claude-sonnet-4-5",
+    "inputTokens": 19786,
+    "outputTokens": 455,
+    "inputCost": 0.05935800000000001,
+    "outputCost": 0.006825,
+    "totalCost": 0.066183,
+    "operation": "chat_with_tools",
+    "sessionId": "session_1761294972569_dghr3offz"
+  },
+  {
+    "timestamp": "2025-10-24T08:39:06.838Z",
+    "model": "claude-sonnet-4-5",
+    "inputTokens": 4177,
+    "outputTokens": 462,
+    "inputCost": 0.012530999999999999,
+    "outputCost": 0.00693,
+    "totalCost": 0.019461,
+    "operation": "chat_with_tools",
+    "sessionId": "session_1761295110440_kyqxahzxb"
   }
 ]

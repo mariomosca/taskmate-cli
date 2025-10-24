@@ -233,7 +233,7 @@ export class CommandHandler {
 
       const session = await this.context.sessionManager.createSession(name, provider);
       
-      this.context.onOutput(`✨ **Nuova sessione creata!**\n\n📝 Nome: ${session.name}\n🆔 ID: ${session.id}\n🤖 Provider: ${session.llmProvider}`);
+      this.context.onOutput(`✨ **Nuova sessione creata!**\n\n📝 Nome: ${session.name}\n🆔 ID: ${session.id}`);
     } catch (error) {
       throw new Error(`Impossibile creare la sessione: ${error instanceof Error ? error.message : 'Errore sconosciuto'}`);
     }
@@ -373,7 +373,6 @@ export class CommandHandler {
       if (currentSession) {
         output += `   🆔 ${currentSession.id}\n`;
         output += `   💬 ${currentSession.messages.length} messaggi\n`;
-        output += `   🤖 Provider: ${currentSession.llmProvider}\n`;
       }
 
       // Database stats

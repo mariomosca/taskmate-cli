@@ -2,6 +2,7 @@ import React from 'react';
 import { Box, Text } from 'ink';
 import { Message } from '../types/index.js';
 import { LoadingStep } from '../services/CommandHandler.js';
+import { LoadingIndicator } from './LoadingIndicator.js';
 import figures from 'figures';
 
 interface ContentAreaProps {
@@ -37,11 +38,10 @@ export const ContentArea = ({
           <Text color={isUser ? 'white' : 'green'}>{message.content}</Text>
         </Box>
         
-        {message.metadata && (
+        {message.metadata && message.metadata.processingTime && (
           <Box paddingLeft={3} marginTop={0}>
             <Text color="gray" dimColor>
-              {message.metadata.llmProvider && `Provider: ${message.metadata.llmProvider}`}
-              {message.metadata.processingTime && ` • ${message.metadata.processingTime}ms`}
+              {message.metadata.processingTime}ms
             </Text>
           </Box>
         )}
@@ -50,7 +50,7 @@ export const ContentArea = ({
   };
 
   const renderLoadingIndicator = () => (
-    <Box flexDirection="row" alignItems="center" marginBottom={1}>
+    <Box flexDirection="column" marginBottom={1}>
       {loadingSteps && loadingSteps.length > 0 ? (
         <Box flexDirection="column">
           {loadingSteps.map((step) => (
@@ -78,10 +78,13 @@ export const ContentArea = ({
           ))}
         </Box>
       ) : (
-        <>
-          <Text color="yellow">{figures.ellipsis} </Text>
-          <Text color="yellow">{loadingMessage}</Text>
-        </>
+        <LoadingIndicator 
+          message={loadingMessage}
+          type="api"
+          showTimer={true}
+          showSpinner={true}
+          fadeEffect={true}
+        />
       )}
     </Box>
   );

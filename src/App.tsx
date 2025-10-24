@@ -83,6 +83,7 @@ export const App: React.FC = () => {
   // Context states
   const [contextInfo, setContextInfo] = useState<string | null>(null);
   const [contextDescription, setContextDescription] = useState<string | null>(null);
+  const [costInfo, setCostInfo] = useState<string | null>(null);
 
   // Check CLI arguments for session resume
   useEffect(() => {
@@ -192,6 +193,19 @@ export const App: React.FC = () => {
       }
       
       setContextDescription(description);
+      
+      // Get cost information from LLMService
+      try {
+        const currentCost = await llmService.getCurrentSessionCost();
+        if (currentCost > 0) {
+          setCostInfo(`$${currentCost.toFixed(4)}`);
+        } else {
+          setCostInfo('$0.0000');
+        }
+      } catch (costError) {
+        console.error('Error getting cost info:', costError);
+        setCostInfo('$0.0000');
+      }
     } catch (error) {
       console.error('Error updating context info:', error);
     }
@@ -344,6 +358,7 @@ export const App: React.FC = () => {
           <SplashScreen 
             keepVisible={true}
             onComplete={() => setSplashCompleted(true)}
+            currentProvider={sessionManager.getCurrentSession()?.llmProvider || 'claude'}
           />
           {showSessionSelector && splashCompleted && (
             <SessionSelector
@@ -376,6 +391,7 @@ export const App: React.FC = () => {
         <ContextIndicator
           contextInfo={contextInfo}
           contextDescription={contextDescription}
+          costInfo={costInfo}
           position="above-input"
         />
       )}
