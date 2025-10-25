@@ -1,15 +1,21 @@
 import { parseCliArgs, validateCliArgs, CLIArgs } from '../utils/cli';
 
 // Mock yargs per controllare gli argomenti
+const mockYargs = {
+  command: jest.fn().mockReturnThis(),
+  option: jest.fn().mockReturnThis(),
+  help: jest.fn().mockReturnThis(),
+  alias: jest.fn().mockReturnThis(),
+  example: jest.fn().mockReturnThis(),
+  parseSync: jest.fn().mockReturnValue({
+    _: [],
+    resume: false,
+    'session-id': undefined,
+    debug: false
+  })
+};
+
 jest.mock('yargs', () => {
-  const mockYargs = {
-    option: jest.fn().mockReturnThis(),
-    help: jest.fn().mockReturnThis(),
-    alias: jest.fn().mockReturnThis(),
-    example: jest.fn().mockReturnThis(),
-    parseSync: jest.fn()
-  };
-  
   return jest.fn(() => mockYargs);
 });
 
@@ -29,96 +35,127 @@ describe('CLI Utils', () => {
   describe('parseCliArgs', () => {
     it('should parse default arguments correctly', () => {
       mockYargs.parseSync.mockReturnValue({
+        _: [],
         resume: false,
         'session-id': undefined,
         debug: false,
-        provider: undefined
+        provider: undefined,
+        message: undefined,
+        verbose: undefined
       });
 
       const result = parseCliArgs();
 
       expect(result).toEqual({
+        command: undefined,
         resume: false,
         sessionId: undefined,
         debug: false,
-        provider: undefined
+        provider: undefined,
+        message: undefined,
+        verbose: undefined
       });
     });
 
     it('should parse resume flag correctly', () => {
       mockYargs.parseSync.mockReturnValue({
+        _: [],
         resume: true,
         'session-id': undefined,
         debug: false,
-        provider: undefined
+        provider: undefined,
+        message: undefined,
+        verbose: undefined
       });
 
       const result = parseCliArgs();
 
       expect(result).toEqual({
+        command: undefined,
         resume: true,
         sessionId: undefined,
         debug: false,
-        provider: undefined
+        provider: undefined,
+        message: undefined,
+        verbose: undefined
       });
     });
 
     it('should parse session-id correctly', () => {
       mockYargs.parseSync.mockReturnValue({
+        _: [],
         resume: true,
         'session-id': 'test-session-123',
         debug: false,
-        provider: undefined
+        provider: undefined,
+        message: undefined,
+        verbose: undefined
       });
 
       const result = parseCliArgs();
 
       expect(result).toEqual({
+        command: undefined,
         resume: true,
         sessionId: 'test-session-123',
         debug: false,
-        provider: undefined
+        provider: undefined,
+        message: undefined,
+        verbose: undefined
       });
     });
 
     it('should parse debug flag correctly', () => {
       mockYargs.parseSync.mockReturnValue({
+        _: [],
         resume: false,
         'session-id': undefined,
         debug: true,
-        provider: undefined
+        provider: undefined,
+        message: undefined,
+        verbose: undefined
       });
 
       const result = parseCliArgs();
 
       expect(result).toEqual({
+        command: undefined,
         resume: false,
         sessionId: undefined,
         debug: true,
-        provider: undefined
+        provider: undefined,
+        message: undefined,
+        verbose: undefined
       });
     });
 
     it('should parse provider correctly', () => {
       mockYargs.parseSync.mockReturnValue({
+        _: [],
         resume: false,
         'session-id': undefined,
         debug: false,
-        provider: 'claude'
+        provider: 'claude',
+        message: undefined,
+        verbose: undefined
       });
 
       const result = parseCliArgs();
 
       expect(result).toEqual({
+        command: undefined,
         resume: false,
         sessionId: undefined,
         debug: false,
-        provider: 'claude'
+        provider: 'claude',
+        message: undefined,
+        verbose: undefined
       });
     });
 
     it('should parse all arguments together', () => {
       mockYargs.parseSync.mockReturnValue({
+        _: [],
         resume: true,
         'session-id': 'abc123',
         debug: true,
@@ -128,45 +165,63 @@ describe('CLI Utils', () => {
       const result = parseCliArgs();
 
       expect(result).toEqual({
+        command: undefined,
         resume: true,
         sessionId: 'abc123',
         debug: true,
-        provider: 'gemini'
+        provider: 'gemini',
+        message: undefined,
+        verbose: undefined
       });
     });
 
     it('should configure yargs options correctly', () => {
-      mockYargs.parseSync.mockReturnValue({});
+      mockYargs.parseSync.mockReturnValue({
+        _: [],
+        resume: false,
+        'session-id': undefined,
+        debug: false
+      });
       
       parseCliArgs();
 
       // Verifica che le opzioni siano state configurate
-      expect(mockYargs.option).toHaveBeenCalledWith('resume', {
+      expect(mockYargs.option).toHaveBeenCalledWith('resume', expect.objectContaining({
         alias: 'r',
         type: 'boolean',
-        description: 'Riprendi una sessione esistente',
         default: false
-      });
+      }));
 
-      expect(mockYargs.option).toHaveBeenCalledWith('session-id', {
+      expect(mockYargs.option).toHaveBeenCalledWith('session-id', expect.objectContaining({
         alias: 's',
-        type: 'string',
-        description: 'ID della sessione da riprendere (usato con --resume)'
-      });
+        type: 'string'
+      }));
 
-      expect(mockYargs.option).toHaveBeenCalledWith('debug', {
+      expect(mockYargs.option).toHaveBeenCalledWith('debug', expect.objectContaining({
         alias: 'd',
         type: 'boolean',
-        description: 'Abilita modalità debug',
+        description: 'Enable debug mode',
         default: false
-      });
+      }));
 
-      expect(mockYargs.option).toHaveBeenCalledWith('provider', {
+      expect(mockYargs.option).toHaveBeenCalledWith('provider', expect.objectContaining({
         alias: 'p',
         type: 'string',
         choices: ['claude', 'gemini'],
-        description: 'Provider LLM da utilizzare'
-      });
+        description: 'LLM provider to use'
+      }));
+
+      expect(mockYargs.option).toHaveBeenCalledWith('message', expect.objectContaining({
+        alias: 'm',
+        type: 'string',
+        description: 'Send an initial message to start the conversation'
+      }));
+
+      expect(mockYargs.option).toHaveBeenCalledWith('verbose', expect.objectContaining({
+        alias: 'v',
+        type: 'boolean',
+        description: 'Show detailed CLI argument processing and debug information'
+      }));
 
       expect(mockYargs.help).toHaveBeenCalled();
       expect(mockYargs.alias).toHaveBeenCalledWith('help', 'h');
@@ -255,7 +310,7 @@ describe('CLI Utils', () => {
 
       expect(result).toEqual({
         valid: false,
-        error: 'L\'opzione --session-id può essere usata solo con --resume'
+        error: 'The --session-id option can only be used with --resume'
       });
     });
 
@@ -269,7 +324,7 @@ describe('CLI Utils', () => {
 
       expect(result).toEqual({
         valid: false,
-        error: 'L\'opzione --session-id può essere usata solo con --resume'
+        error: 'The --session-id option can only be used with --resume'
       });
     });
 

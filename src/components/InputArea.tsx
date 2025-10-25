@@ -2,8 +2,7 @@
 import React, { useState } from 'react';
 // @ts-ignore
 import { Box, Text, useInput } from 'ink';
-// @ts-ignore
-import TextInput from 'ink-text-input';
+import { TextInput } from '@inkjs/ui';
 // @ts-ignore
 import figures from 'figures';
 import { CommandMenu } from './CommandMenu.js';
@@ -24,6 +23,7 @@ export const InputArea: React.FC<InputAreaProps> = ({
   const [input, setInput] = useState('');
   const [showCommandMenu, setShowCommandMenu] = useState(false);
   const [selectedCommandIndex, setSelectedCommandIndex] = useState(0);
+  const [inputKey, setInputKey] = useState(0); // Key per forzare re-render del TextInput
 
   // Available commands (should match CommandMenu.tsx)
   const commands = [
@@ -72,23 +72,31 @@ export const InputArea: React.FC<InputAreaProps> = ({
   // Handle Enter key press
   const handleInputSubmit = (value: string) => {
     if (showCommandMenu) {
-      // If command menu is open, select the highlighted command
+      // If command menu is open, execute the highlighted command immediately
       const selectedCommand = getSelectedCommand();
       if (selectedCommand) {
-        // Add space after command to position cursor at the end
-        setInput('/' + selectedCommand + ' ');
+        // Clear input and hide menu FIRST
+        setInput('');
         setShowCommandMenu(false);
         setSelectedCommandIndex(0);
+        setInputKey(prev => prev + 1); // Force TextInput re-render
+        
+        // Then execute the command
+        handleSubmit('/' + selectedCommand);
         return;
       }
     }
     
     // Normal input submission
     if (value.trim()) {
-      handleSubmit(value.trim());
+      // Clear input and menu state first
       setInput('');
       setShowCommandMenu(false);
       setSelectedCommandIndex(0);
+      setInputKey(prev => prev + 1); // Force TextInput re-render
+      
+      // Then execute
+      handleSubmit(value.trim());
     }
   };
 
@@ -108,10 +116,12 @@ export const InputArea: React.FC<InputAreaProps> = ({
         // Tab autocompletion
         const selectedCommand = getSelectedCommand();
         if (selectedCommand) {
-          // Add space after command to position cursor at the end
-          setInput('/' + selectedCommand + ' ');
+          // Hide menu immediately and show command in input
           setShowCommandMenu(false);
           setSelectedCommandIndex(0);
+          // Add space after command to position cursor at the end
+          setInput('/' + selectedCommand + ' ');
+          setInputKey(prev => prev + 1); // Force TextInput re-render
         }
         return;
       }
@@ -169,11 +179,12 @@ export const InputArea: React.FC<InputAreaProps> = ({
             {figures.arrowRight} 
           </Text>
           <TextInput
-            value={input}
+            key={inputKey}
+            defaultValue={input}
             placeholder=""
             onChange={handleInputChange}
             onSubmit={handleInputSubmit}
-            showCursor={!disabled}
+            isDisabled={disabled}
           />
         </Box>
         

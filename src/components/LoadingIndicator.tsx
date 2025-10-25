@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Text } from 'ink';
-import Spinner from 'ink-spinner';
+import { Spinner, StatusMessage } from '@inkjs/ui';
 
 interface LoadingIndicatorProps {
   message?: string;
   type?: 'tasks' | 'projects' | 'sync' | 'api' | 'general';
   showTimer?: boolean;
   showSpinner?: boolean;
-  fadeEffect?: boolean;
+  variant?: 'info' | 'success' | 'warning' | 'error';
 }
 
 export const LoadingIndicator: React.FC<LoadingIndicatorProps> = ({ 
@@ -15,11 +15,10 @@ export const LoadingIndicator: React.FC<LoadingIndicatorProps> = ({
   type = 'general', 
   showTimer = true,
   showSpinner = true,
-  fadeEffect = true
+  variant = 'info'
 }) => {
   const [seconds, setSeconds] = useState<number>(0);
   const [messageIndex, setMessageIndex] = useState<number>(0);
-  const [fadeOpacity, setFadeOpacity] = useState<number>(1);
 
   const loadingMessages = {
     tasks: [
@@ -68,34 +67,16 @@ export const LoadingIndicator: React.FC<LoadingIndicatorProps> = ({
     return () => clearInterval(interval);
   }, [showTimer]);
 
-  // Message change and fade effect
+  // Message rotation
   useEffect(() => {
-    if (!fadeEffect || message) return; // Don't change message if explicitly provided
+    if (message) return; // Don't change message if explicitly provided
     
     const interval = setInterval(() => {
-      // Fade out
-      setFadeOpacity(0.3);
-      
-      setTimeout(() => {
-        setMessageIndex((prev: number) => (prev + 1) % currentMessages.length);
-        // Fade in
-        setFadeOpacity(1);
-      }, 300);
+      setMessageIndex((prev: number) => (prev + 1) % currentMessages.length);
     }, 3000);
 
     return () => clearInterval(interval);
-  }, [fadeEffect, message, currentMessages.length]);
-
-  // Colori per il fade effect
-  const getTextColor = () => {
-    if (!fadeEffect) return 'cyan';
-    
-    // Simula fade usando diversi livelli di luminosità
-    if (fadeOpacity > 0.8) return 'cyan';
-    if (fadeOpacity > 0.6) return 'blue';
-    if (fadeOpacity > 0.4) return 'blueBright';
-    return 'gray';
-  };
+  }, [message, currentMessages.length]);
 
   const getTimerColor = () => {
     // Cambia colore del timer in base ai secondi
@@ -105,27 +86,34 @@ export const LoadingIndicator: React.FC<LoadingIndicatorProps> = ({
     return 'red';
   };
 
+  // Se showSpinner è false, usa StatusMessage per un messaggio più pulito
+  if (!showSpinner) {
+    return (
+      <Box flexDirection="row" alignItems="center" marginY={1}>
+        <StatusMessage variant={variant}>
+          {displayMessage}
+        </StatusMessage>
+        {showTimer && (
+          <Box marginLeft={2}>
+            <Text color={getTimerColor()} dimColor={seconds < 5}>
+              {seconds}s
+            </Text>
+          </Box>
+        )}
+      </Box>
+    );
+  }
+
   return (
     <Box flexDirection="row" alignItems="center" marginY={1}>
-      {/* Spinner */}
-      {showSpinner && (
-        <Box marginRight={1}>
-          <Text color="cyan">
-            <Spinner type="dots" />
-          </Text>
-        </Box>
-      )}
-      
-      {/* Messaggio con 3 puntini fissi */}
-      <Box marginRight={2}>
-        <Text color={getTextColor()}>
-          {displayMessage}...
-        </Text>
+      {/* Spinner di @inkjs/ui */}
+      <Box marginRight={1}>
+        <Spinner label={displayMessage} />
       </Box>
       
       {/* Timer */}
       {showTimer && (
-        <Box>
+        <Box marginLeft={2}>
           <Text color={getTimerColor()} dimColor={seconds < 5}>
             {seconds}s
           </Text>

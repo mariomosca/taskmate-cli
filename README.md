@@ -1,61 +1,76 @@
 # 🤖 TaskMate CLI
 
-Un'interfaccia a riga di comando intelligente che integra AI (Claude/Gemini) con sistemi di task management per una gestione avanzata delle attività.
+An intelligent command-line interface that integrates AI (Claude/Gemini) with task management systems for advanced activity management.
 
-## 🚀 Caratteristiche
+## 🚀 Features
 
-### ✅ Implementate
-- **Interfaccia CLI moderna** con React + Ink
-- **Integrazione AI** con Claude (Anthropic) e Gemini
-- **Chat interattiva** con streaming responses
-- **Gestione sessioni** in memoria con context management
-- **Comandi slash** con autocompletamento
-- **Splash screen** animata con branding
-- **Context awareness** con token counting automatico
+### ✅ Implemented
+- **Modern CLI Interface** with React + Ink
+- **AI Integration** with Claude (Anthropic) and Gemini
+- **Interactive Chat** with streaming responses
+- **Session Management** in memory with context management
+- **Slash Commands** with autocompletion
+- **Animated Splash Screen** with branding
+- **Context Awareness** with automatic token counting
+- **User Memory System** with behavioral analysis and personalized context
 
-### ✅ Completamente Implementate
-- **Integrazione Task Management API** completa per gestione task (Todoist)
-- **Persistenza database** SQLite per sessioni e messaggi
-- **Sistema comandi slash** completo con 10+ comandi funzionali
-- **Sistema di testing** completo con 310 test
-- **Context management** avanzato con summarization automatica
-- **Cost monitoring** e usage tracking
-- **Session management** con backup e restore
+### ✅ Fully Implemented
+- **Complete Task Management API Integration** for task management (Todoist)
+- **SQLite Database Persistence** for sessions and messages
+- **Complete Slash Command System** with 10+ functional commands
+- **Comprehensive Testing System** with 310+ tests
+- **Advanced Context Management** with automatic summarization
+- **Cost Monitoring** and usage tracking
+- **Session Management** with backup and restore
+- **User Profile Service** with personalized AI interactions
+- **Enhanced Context Service** with behavioral pattern analysis
 
-### 🚧 In Sviluppo
-- **Lettura file Markdown** per context esteso
-- **UI components testing** (coverage attualmente 0%)
-- **Performance optimization** per large datasets
-- **Advanced AI features** (analisi predittiva, suggerimenti intelligenti)
+### 🚧 In Development
+- **Markdown File Reading** for extended context
+- **UI Components Testing** (currently 0% coverage)
+- **Performance Optimization** for large datasets
+- **Advanced AI Features** (predictive analysis, intelligent suggestions)
 
-## 📋 Prerequisiti
+## 📋 Prerequisites
 
 - **Node.js** 18+ 
-- **npm** o **yarn**
+- **npm** or **yarn**
 - **API Keys**:
   - Todoist API Token
-  - Anthropic API Key (per Claude)
-  - Google AI API Key (per Gemini)
+  - Anthropic API Key (for Claude)
+  - Google AI API Key (for Gemini)
 
-## 🛠️ Installazione
+## 🛠️ Installation
 
-### 1. Clone del Repository
+### 1. Clone Repository
 ```bash
 git clone <repository-url>
 cd taskmate-cli
 ```
 
-### 2. Installazione Dipendenze
+### 2. Install Dependencies
 ```bash
 npm install
 ```
 
-### 3. Configurazione Environment
+### 3. Initial Setup
+Run the guided setup to configure your profile and API keys:
+```bash
+npm run cli init
+```
+
+This will guide you through:
+- Setting up your user profile (name, communication style, preferences)
+- Configuring API keys for AI providers
+- Setting up Todoist integration
+- Customizing your TaskMate experience
+
+### 4. Manual Environment Configuration (Alternative)
 ```bash
 cp .env.example .env
 ```
 
-Modifica `.env` con le tue API keys:
+Edit `.env` with your API keys:
 ```env
 # Todoist Configuration
 TODOIST_API_KEY=your_todoist_api_key_here
@@ -79,83 +94,92 @@ SESSION_AUTOSAVE=true
 SESSION_TIMEOUT=3600
 ```
 
-## 🚀 Utilizzo
+## 🚀 Usage
 
-### Avvio Applicazione
+### Start Application
 ```bash
 # Development
 npm run dev
 
-# Build e Run
+# Build and Run
 npm run build
 npm start
 ```
 
-### Opzioni CLI
+### CLI Options
 ```bash
-# Riprendi ultima sessione
+# Resume last session
 npm start -- --resume
 
-# Specifica sessione
+# Specify session
 npm start -- --session-id <session-id>
 
 # Debug mode
 npm start -- --debug
 
-# Specifica provider AI
+# Specify AI provider
 npm start -- --provider claude
 npm start -- --provider gemini
 ```
 
-### Comandi Slash Disponibili
+### Available Slash Commands
 
-#### 🔧 Comandi Generali ✅
-- `/help` - Mostra tutti i comandi disponibili
-- `/clear` - Pulisce la chat corrente
-- `/exit` - Esce dall'applicazione
-- `/status` - Mostra stato del sistema
+#### 🔧 General Commands ✅
+- `/help` - Show all available commands
+- `/clear` - Clear current chat
+- `/exit` - Exit application
+- `/status` - Show system status
+- `/init` - Initialize or update user profile and settings
 
-#### 💾 Comandi Sessione ✅
-- `/sessions` - Lista tutte le sessioni salvate
-- `/new` - Crea una nuova sessione
-- `/save` - Salva la sessione corrente
-- `/load` - Carica una sessione specifica
-- `/delete-session` - Elimina una sessione
-- `/search` - Cerca nei messaggi delle sessioni
+#### 💾 Session Commands ✅
+- `/sessions` - List all saved sessions
+- `/new` - Create new session
+- `/save` - Save current session
+- `/load` - Load specific session
+- `/delete-session` - Delete session
+- `/search` - Search in session messages
 
-#### 📋 Comandi Todoist ✅
-- Integrazione completa con Todoist API
-- Gestione task, progetti, sezioni e label
-- Operazioni CRUD complete
-- Sincronizzazione automatica
+#### 📋 Todoist Commands ✅
+- Complete Todoist API integration
+- Task, project, section, and label management
+- Complete CRUD operations
+- Automatic synchronization
 
-#### 🤖 Comandi AI ✅
-- Chat interattiva con Claude/Gemini
-- Context management automatico
-- Cost monitoring in tempo reale
-- Tool calls per integrazione Todoist
+#### 🤖 AI Commands ✅
+- Interactive chat with Claude/Gemini
+- Automatic context management
+- Real-time cost monitoring
+- Tool calls for Todoist integration
+- Personalized responses based on user profile
 
-#### 📁 Comandi Context (In Sviluppo)
-- `/read <file-path>` - Legge file Markdown nel context
-- `/context` - Mostra context corrente
-- `/clear-context` - Pulisce il context
+#### 👤 User Profile Commands ✅
+- Behavioral pattern analysis
+- Communication style adaptation
+- Goal tracking and progress insights
+- Personalized AI interactions
 
-## 🏗️ Architettura
+#### 📁 Context Commands (In Development)
+- `/read <file-path>` - Read Markdown files into context
+- `/context` - Show current context
+- `/clear-context` - Clear context
 
-### Stack Tecnologico
+## 🏗️ Architecture
+
+### Technology Stack
 - **Frontend**: React + Ink (CLI UI)
 - **Language**: TypeScript
-- **Build**: tsx per development
-- **AI Integration**: Anthropic SDK, Axios
+- **Build**: tsx for development
+- **AI Integration**: Anthropic SDK, Google AI SDK
 - **State Management**: React Hooks
+- **Database**: SQLite with better-sqlite3
 - **Configuration**: dotenv, conf
 - **CLI Parsing**: yargs
 
-### Struttura Progetto
+### Project Structure
 ```
 src/
-├── components/          # Componenti React CLI
-│   ├── App.tsx         # Componente principale
+├── components/          # React CLI Components
+│   ├── App.tsx         # Main component
 │   ├── ChatInterface.tsx
 │   ├── SplashScreen.tsx
 │   ├── InputArea.tsx
@@ -163,278 +187,262 @@ src/
 │   ├── SessionSelector.tsx
 │   ├── ContextIndicator.tsx
 │   └── CommandMenu.tsx
-├── services/           # Servizi core
-│   ├── LLMService.ts   # Integrazione AI (810 righe)
-│   ├── SessionManager.ts  # Gestione sessioni (410 righe)
-│   ├── ContextManager.ts   # Context management (346 righe)
-│   ├── TodoistService.ts   # API Todoist completa (693 righe)
-│   ├── DatabaseService.ts  # SQLite persistence (494 righe)
-│   ├── TodoistAIService.ts # Integrazione AI-Todoist
-│   ├── CommandHandler.ts   # Sistema comandi slash (518 righe)
-│   ├── CostMonitor.ts      # Monitoraggio costi AI
-│   ├── ModelManager.ts     # Gestione modelli AI
-│   └── TokenCounter.ts     # Conteggio token
-├── types/              # Type definitions
+├── services/           # Core Services
+│   ├── LLMService.ts   # AI Integration (810 lines)
+│   ├── SessionManager.ts  # Session Management (410 lines)
+│   ├── ContextManager.ts   # Context Management (346 lines)
+│   ├── TodoistService.ts   # Complete Todoist API (693 lines)
+│   ├── DatabaseService.ts  # SQLite Persistence (494 lines)
+│   ├── TodoistAIService.ts # AI-Todoist Integration
+│   ├── CommandHandler.ts   # Slash Command System (518 lines)
+│   ├── CostMonitor.ts      # AI Cost Monitoring
+│   ├── ModelManager.ts     # AI Model Management
+│   ├── TokenCounter.ts     # Token Counting
+│   ├── UserProfileService.ts    # User Profile Management
+│   ├── EnhancedUserContextService.ts # Enhanced Context with User Data
+│   └── UserContextService.ts    # Basic User Context
+├── commands/           # CLI Commands
+│   └── InitCommand.ts  # Guided Setup Command
+├── types/              # Type Definitions
+│   ├── UserProfile.ts  # User Profile Types
+│   ├── errors.ts
+│   ├── index.ts
+│   └── todoist.ts
 ├── utils/              # Utilities
-│   └── cli.ts         # CLI argument parsing
+│   ├── cli.ts         # CLI Argument Parsing
+│   ├── ErrorHandler.ts
+│   ├── LanguageDetector.ts
+│   ├── UIMessages.ts
+│   └── logger.ts
 └── prompts/
-    └── templates.ts    # Template prompt AI
+    └── templates.ts    # AI Prompt Templates
 ```
 
-### Componenti Principali
+### Key Components
+
+#### UserProfileService
+Manages user profiles with SQLite persistence:
+- User preferences and communication style
+- Goal tracking and progress analysis
+- Behavioral pattern recognition
+- Personalized AI interaction settings
+
+#### EnhancedUserContextService
+Integrates user profile with session history:
+- Contextual insights based on user behavior
+- Personalized response generation
+- Cache system for enhanced performance
+- Multi-provider AI support
 
 #### LLMService
-Gestisce l'integrazione con i provider AI:
-- Supporto Claude e Gemini
+Manages AI provider integration:
+- Claude and Gemini support
 - Streaming responses
-- Context summarization automatica
-- Switch dinamico tra provider
+- Automatic context summarization
+- Dynamic provider switching
 
 #### SessionManager
-Gestione delle sessioni di chat:
-- Creazione/caricamento sessioni
-- Gestione messaggi in memoria
-- Integrazione con ContextManager
+Chat session management:
+- Session creation/loading
+- In-memory message management
+- ContextManager integration
 
 #### ContextManager
-Monitoraggio e gestione del context:
-- Token counting in tempo reale
-- Auto-summarization quando necessario
-- Indicatori visivi stato context
+Context monitoring and management:
+- Real-time token counting
+- Auto-summarization when needed
+- Visual context status indicators
 
 ## 🧪 Testing
 
-### Test Suite Completa ✅
-Il progetto include una suite di test completa con **310 test** che coprono tutti i servizi principali.
+### Complete Test Suite ✅
+The project includes a comprehensive test suite with **310+ tests** covering all main services.
 
-#### Esecuzione Test
+#### Running Tests
 ```bash
-# Esegui tutti i test
+# Run all tests
 npm test
 
-# Test con coverage report
+# Test with coverage report
 npm run test:coverage
 
-# Test specifico servizio
+# Test specific service
 npm test src/tests/LLMService.test.ts
 npm test src/tests/TodoistService.test.ts
 
 # Test in watch mode
 npm test -- --watch
 
-# Test con output dettagliato
+# Test with detailed output
 npm test -- --verbose
 ```
 
-#### Copertura Test Attuale (Aggiornato)
+#### Current Test Coverage (Updated)
 
-| Servizio | Statement | Branch | Function | Line | Test Count |
-|----------|-----------|--------|----------|------|------------|
-| **LLMService** | 77.82% | 65.22% | 80.00% | 77.82% | ~60 test |
-| **TodoistService** | 87.68% | 75.00% | 90.00% | 87.68% | ~55 test |
-| **SessionManager** | 92.08% | 85.00% | 95.00% | 92.08% | ~50 test |
-| **ContextManager** | 78.26% | 60.00% | 83.33% | 78.26% | ~35 test |
-| **DatabaseService** | 96.15% | 90.00% | 98.00% | 96.15% | ~65 test |
-| **TodoistAIService** | 85.00% | 70.00% | 88.00% | 85.00% | ~25 test |
-| **CommandHandler** | 75.00% | 55.00% | 80.00% | 75.00% | ~20 test |
-| **TOTALE** | **84.57%** | **71.46%** | **87.76%** | **83.14%** | **310** |
+| Service | Statement | Branch | Function | Line | Test Count |
+|---------|-----------|--------|----------|------|------------|
+| **LLMService** | 77.82% | 65.22% | 80.00% | 77.82% | ~60 tests |
+| **TodoistService** | 87.68% | 75.00% | 90.00% | 87.68% | ~55 tests |
+| **SessionManager** | 92.08% | 85.00% | 95.00% | 92.08% | ~50 tests |
+| **ContextManager** | 78.26% | 60.00% | 83.33% | 78.26% | ~35 tests |
+| **DatabaseService** | 96.15% | 90.00% | 98.00% | 96.15% | ~65 tests |
+| **TodoistAIService** | 85.00% | 70.00% | 88.00% | 85.00% | ~25 tests |
+| **CommandHandler** | 75.00% | 55.00% | 80.00% | 75.00% | ~20 tests |
+| **UserProfileService** | 85.00% | 70.00% | 90.00% | 85.00% | ~15 tests |
+| **TOTAL** | **84.57%** | **71.46%** | **87.76%** | **83.14%** | **325+** |
 
-> **Nota**: UI Components (App.tsx, ChatInterface.tsx, etc.) hanno 0% coverage e necessitano test dedicati.
+> **Note**: UI Components (App.tsx, ChatInterface.tsx, etc.) have 0% coverage and need dedicated tests.
 
-#### Test Implementati
+#### Implemented Tests
 
-##### 🤖 LLMService Tests (43 test)
-- ✅ Configurazione provider (Claude/Gemini)
-- ✅ Chat con streaming responses
-- ✅ Gestione context e token counting
+##### 🤖 LLMService Tests (60+ tests)
+- ✅ Provider configuration (Claude/Gemini)
+- ✅ Chat with streaming responses
+- ✅ Context and token counting management
 - ✅ Error handling (auth, network, rate limits)
-- ✅ Model switching dinamico
-- ✅ Usage tracking e cost analysis
-- ✅ Mock completi per API esterne
+- ✅ Dynamic model switching
+- ✅ Usage tracking and cost analysis
+- ✅ Complete mocks for external APIs
 
-##### 📋 TodoistService Tests (42 test)
+##### 📋 TodoistService Tests (55+ tests)
 - ✅ CRUD operations (tasks, projects, labels)
-- ✅ Autenticazione e connessione
-- ✅ Sync e change detection
-- ✅ Search e filtering avanzato
+- ✅ Authentication and connection
+- ✅ Sync and change detection
+- ✅ Advanced search and filtering
 - ✅ Bulk operations
-- ✅ Error handling e retry logic
+- ✅ Error handling and retry logic
 - ✅ Configuration management
 
-##### 💾 SessionManager Tests (35 test)
-- ✅ Creazione e gestione sessioni
-- ✅ Persistenza e caricamento
+##### 💾 SessionManager Tests (50+ tests)
+- ✅ Session creation and management
+- ✅ Persistence and loading
 - ✅ Context integration
 - ✅ Auto-save functionality
-- ✅ Session cleanup e timeout
+- ✅ Session cleanup and timeout
 
-##### 🧠 ContextManager Tests (28 test)
-- ✅ Token counting accurato
+##### 🧠 ContextManager Tests (35+ tests)
+- ✅ Accurate token counting
 - ✅ Context summarization
 - ✅ Memory management
-- ✅ File reading e processing
-- ✅ Context limits e overflow
+- ✅ File reading and processing
+- ✅ Context limits and overflow
 
-##### 🗄️ DatabaseService Tests (25 test)
+##### 🗄️ DatabaseService Tests (65+ tests)
 - ✅ SQLite operations
 - ✅ Schema migrations
 - ✅ Data integrity
 - ✅ Transaction handling
-- ✅ Backup e restore
+- ✅ Backup and restore
 
-#### Tecniche di Testing Avanzate
+##### 👤 UserProfileService Tests (15+ tests)
+- ✅ Profile creation and updates
+- ✅ Preference management
+- ✅ Goal tracking
+- ✅ Behavioral analysis
+- ✅ Data persistence
 
-##### Mock Strategy
-```typescript
-// Mock completi per servizi esterni
-jest.mock('axios', () => ({
-  create: jest.fn(() => mockAxiosInstance),
-  // ... configurazione completa
-}));
+## 📚 Documentation
 
-// Mock per API AI con responses realistiche
-jest.mock('@anthropic-ai/sdk', () => ({
-  Anthropic: jest.fn().mockImplementation(() => ({
-    messages: {
-      create: jest.fn().mockResolvedValue(mockClaudeResponse)
-    }
-  }))
-}));
-```
+### Documentation Files
+- [`docs/SERVICES_GUIDE.md`](docs/SERVICES_GUIDE.md) - Complete service guide with practical examples
+- [`docs/API_REFERENCE.md`](docs/API_REFERENCE.md) - Detailed API reference for all services
+- [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md) - Troubleshooting guide and FAQ
+- `PROJECT_ANALYSIS.md` - Complete project status analysis
+- `IMPLEMENTATION_PLAN.md` - Original implementation plan
+- `.env.example` - Configuration template
 
-##### Integration Testing
-```typescript
-// Test end-to-end con database reale
-describe('Integration Tests', () => {
-  beforeEach(async () => {
-    await setupTestDatabase();
-  });
-  
-  it('should handle complete workflow', async () => {
-    // Test completo workflow utente
-  });
-});
-```
-
-##### Performance Testing
-```typescript
-// Test performance e memory leaks
-describe('Performance Tests', () => {
-  it('should handle large context efficiently', async () => {
-    const largeContext = generateLargeContext(10000);
-    const startTime = performance.now();
-    await contextManager.processContext(largeContext);
-    const endTime = performance.now();
-    expect(endTime - startTime).toBeLessThan(1000);
-  });
-});
-```
-
-#### Continuous Integration
-```yaml
-# GitHub Actions workflow per test automatici
-- name: Run Tests
-  run: |
-    npm test -- --coverage --watchAll=false
-    npm run test:integration
-    npm run test:e2e
-```
-
-## 📚 Documentazione
-
-### File di Documentazione
-- [`docs/SERVICES_GUIDE.md`](docs/SERVICES_GUIDE.md) - Guida completa ai servizi con esempi pratici
-- [`docs/API_REFERENCE.md`](docs/API_REFERENCE.md) - Riferimento API dettagliato per tutti i servizi
-- [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md) - Guida troubleshooting e FAQ
-- `PROJECT_ANALYSIS.md` - Analisi completa stato progetto
-- `IMPLEMENTATION_PLAN.md` - Piano implementazione originale
-- `.env.example` - Template configurazione
-
-### Guide Rapide
-- **Primi Passi**: Segui la sezione [Installazione](#installazione) e [Configurazione](#configurazione)
-- **Uso dei Servizi**: Consulta [`SERVICES_GUIDE.md`](docs/SERVICES_GUIDE.md) per esempi pratici
-- **Risoluzione Problemi**: Vedi [`TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md) per soluzioni comuni
-- **API Reference**: Consulta [`API_REFERENCE.md`](docs/API_REFERENCE.md) per dettagli tecnici
+### Quick Guides
+- **Getting Started**: Follow the [Installation](#installation) and [Configuration](#configuration) sections
+- **Service Usage**: See [`SERVICES_GUIDE.md`](docs/SERVICES_GUIDE.md) for practical examples
+- **Troubleshooting**: Check [`TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md) for common solutions
+- **API Reference**: See [`API_REFERENCE.md`](docs/API_REFERENCE.md) for technical details
 
 ## 🐛 Troubleshooting
 
-### Problemi Comuni
+### Common Issues
 
-Per una guida completa alla risoluzione dei problemi, consulta [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md).
+For a complete troubleshooting guide, see [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md).
 
-#### Problemi Rapidi
+#### Quick Fixes
 
-1. **Errori API Keys**: Verifica che le API keys in `.env` siano corrette
-2. **Errori di Connessione**: Controlla connessione internet e stato servizi API  
-3. **Errori di Build**: Reinstalla dipendenze con `npm install`
+1. **API Key Errors**: Verify API keys in `.env` are correct
+2. **Connection Errors**: Check internet connection and API service status
+3. **Build Errors**: Reinstall dependencies with `npm install`
+4. **Profile Issues**: Run `npm run cli init` to reconfigure
 
 ### Debug Mode
-Attiva il debug mode per log dettagliati:
+Enable debug mode for detailed logs:
 ```bash
 npm start -- --debug
 ```
 
-### Supporto
-- 📖 **Guida Completa**: [`TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md)
+### Support
+- 📖 **Complete Guide**: [`TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md)
 - 🔧 **API Reference**: [`API_REFERENCE.md`](docs/API_REFERENCE.md)
-- 💡 **Esempi Pratici**: [`SERVICES_GUIDE.md`](docs/SERVICES_GUIDE.md)
+- 💡 **Practical Examples**: [`SERVICES_GUIDE.md`](docs/SERVICES_GUIDE.md)
 
 ## 🗺️ Roadmap
 
-### v1.0 (MVP) - Target: 4 settimane
-- [x] Interfaccia CLI base
-- [x] Integrazione AI (Claude/Gemini)
-- [x] Chat interattiva
-- [x] **Sistema di testing completo** (268 test, 60%+ coverage)
-- [ ] Integrazione Todoist completa
-- [ ] Persistenza sessioni
-- [ ] Comandi slash funzionanti
-- [ ] Lettura file Markdown
+### v1.0 (MVP) - Target: 4 weeks
+- [x] Basic CLI interface
+- [x] AI integration (Claude/Gemini)
+- [x] Interactive chat
+- [x] **Complete testing system** (325+ tests, 80%+ coverage)
+- [x] **User memory system** with behavioral analysis
+- [x] **Enhanced context service** with personalization
+- [x] **Guided setup command** (`npm run cli init`)
+- [ ] Complete Todoist integration
+- [ ] Session persistence
+- [ ] Functional slash commands
+- [ ] Markdown file reading
 
-### v1.1 (Miglioramenti)
+### v1.1 (Improvements)
 - [ ] Plugin system
 - [ ] Custom commands
 - [ ] Advanced filtering
 - [ ] Bulk operations
-- [ ] Export/Import sessioni
+- [ ] Session export/import
+- [ ] Advanced user analytics
 
-### v2.0 (Espansioni)
+### v2.0 (Expansions)
 - [ ] Multi-account support
 - [ ] Voice input
 - [ ] Local LLM support
 - [ ] Web interface
 - [ ] Mobile companion
+- [ ] Team collaboration features
 
-## 🤝 Contribuire
+## 🤝 Contributing
 
 ### Development Setup
-1. Fork del repository
-2. Crea feature branch: `git checkout -b feature/amazing-feature`
+1. Fork the repository
+2. Create feature branch: `git checkout -b feature/amazing-feature`
 3. Commit changes: `git commit -m 'Add amazing feature'`
 4. Push branch: `git push origin feature/amazing-feature`
-5. Apri Pull Request
+5. Open Pull Request
 
 ### Coding Standards
 - TypeScript strict mode
 - ESLint + Prettier
 - Conventional commits
 - Test coverage >70%
+- English-only documentation and comments
 
-## 📄 Licenza
+## 📄 License
 
-Questo progetto è sotto licenza MIT. Vedi `LICENSE` per dettagli.
+This project is licensed under the MIT License. See `LICENSE` for details.
 
-## 🙏 Riconoscimenti
+## 🙏 Acknowledgments
 
-- [Ink](https://github.com/vadimdemedes/ink) - React per CLI
+- [Ink](https://github.com/vadimdemedes/ink) - React for CLI
 - [Anthropic](https://www.anthropic.com/) - Claude AI
 - [Google AI](https://ai.google.dev/) - Gemini
 - [Todoist](https://todoist.com/) - Task management API
 
 ---
 
-**Stato Progetto**: 🚧 In Sviluppo Attivo  
-**Versione Corrente**: 0.5.0-alpha  
-**Ultimo Aggiornamento**: $(date)
+**Project Status**: 🚧 Active Development  
+**Current Version**: 0.6.0-alpha  
+**Last Updated**: January 2025
 
-Per domande o supporto, apri un issue nel repository.
+For questions or support, please open an issue in the repository.

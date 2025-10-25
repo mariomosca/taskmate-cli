@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Text } from 'ink';
 import BigText from 'ink-big-text';
-import Spinner from 'ink-spinner';
+import { Spinner, StatusMessage, Alert, Badge } from '@inkjs/ui';
 import gradient from 'gradient-string';
-import figures from 'figures';
 import { UIMessageManager } from '../utils/UIMessages.js';
 
 // Global flag to track if the app has been initialized
@@ -23,10 +22,10 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete, duration
   const [isFirstTime, setIsFirstTime] = useState(true);
 
   const steps = [
-    'Initializing TaskMate CLI...',
-    UIMessageManager.getMessage('loadingConfiguration'),
-    'Connecting to AI services...',
-    'Ready!'
+    { message: 'Initializing TaskMate CLI...', variant: 'info' as const },
+    { message: UIMessageManager.getMessage('loadingConfiguration'), variant: 'info' as const },
+    { message: 'Connecting to AI services...', variant: 'info' as const },
+    { message: 'Ready!', variant: 'success' as const }
   ];
 
   // Check if this is the first time initialization
@@ -104,27 +103,24 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete, duration
         </Text>
       </Box>
 
-      <Box marginBottom={1}>
-        <Text color="cyan">
-          🤖 Model: {currentModel}
-        </Text>
+      <Box marginBottom={1} flexDirection="row" alignItems="center">
+        <Text color="cyan">🤖 Model: </Text>
+        <Badge color="blue">{currentModel}</Badge>
       </Box>
 
       {!isCompleted && (
-        <Box flexDirection="row" alignItems="center" marginTop={1}>
-          <Text color="cyan">
-            <Spinner type="dots" />
-          </Text>
-          <Box marginLeft={1}>
-            <Text color="white">{steps[currentStep]}</Text>
-          </Box>
+        <Box marginTop={1}>
+          <StatusMessage variant={steps[currentStep].variant}>
+            {steps[currentStep].message}
+          </StatusMessage>
         </Box>
       )}
 
       {isCompleted && showCompletionMessage && (
-        <Box flexDirection="row" alignItems="center" marginTop={1}>
-          <Text color="green">{figures.tick} </Text>
-          <Text color="green">{UIMessageManager.getMessage('systemReady')}</Text>
+        <Box marginTop={1}>
+          <Alert variant="success">
+            {UIMessageManager.getMessage('systemReady')}
+          </Alert>
         </Box>
       )}
     </Box>

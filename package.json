@@ -39,6 +39,7 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.67.0",
     "@anthropic-ai/tokenizer": "^0.0.4",
+    "@inkjs/ui": "^2.0.0",
     "@types/better-sqlite3": "^7.6.13",
     "@types/yargs": "^17.0.33",
     "axios": "^1.12.2",
@@ -51,7 +52,7 @@
     "ink": "^5.2.1",
     "ink-big-text": "^2.0.0",
     "ink-progress-bar": "^3.0.0",
-    "ink-spinner": "^5.0.0",
+
     "ink-table": "^3.1.0",
     "ink-text-input": "^6.0.0",
     "react": "^18.2.0",

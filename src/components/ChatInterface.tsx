@@ -1,5 +1,6 @@
 import React from 'react';
 import { Box, Text, useInput } from 'ink';
+import { StatusMessage, Alert, Badge } from '@inkjs/ui';
 import { SessionManager } from '../services/SessionManager.js';
 import { llmService } from '../services/LLMService.js';
 import { Message } from '../types/index.js';
@@ -132,17 +133,21 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
   return (
     <Box flexDirection="column" height="100%" padding={1}>
       {/* Header */}
-      <Box borderStyle="single" borderColor="cyan" padding={1} marginBottom={1}>
+      <Box borderStyle="single" borderColor="cyan" padding={1} marginBottom={1} flexDirection="row" alignItems="center">
         <Text color="cyan" bold>
           💬 {currentSession?.name || UIMessageManager.getMessage('newChat', { name: 'New Chat' })} 
         </Text>
-        <Text color="gray"> | ESC to exit</Text>
+        <Box marginLeft={2}>
+          <Badge color="gray">ESC to exit</Badge>
+        </Box>
       </Box>
 
       {/* Context info */}
       {sessionContext && state.messages.length === 0 && (
-        <Box borderStyle="single" borderColor="yellow" padding={1} marginBottom={1}>
-          <Text color="yellow">{UIMessageManager.getMessage('sessionResumed')}</Text>
+        <Box marginBottom={1}>
+          <Alert variant="warning">
+            {UIMessageManager.getMessage('sessionResumed')}
+          </Alert>
         </Box>
       )}
 
@@ -151,35 +156,46 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
         {state.messages.map((message) => (
           <Box key={message.id} marginBottom={1}>
             {message.role === 'user' && (
-              <Text color="green" bold>
-                👤 Tu:
-              </Text>
+              <Box flexDirection="row" alignItems="center" marginBottom={1}>
+                <Badge color="green">👤 Tu</Badge>
+              </Box>
+            )}
+            {message.role === 'assistant' && (
+              <Box flexDirection="row" alignItems="center" marginBottom={1}>
+                <Badge color="blue">🤖 Assistant</Badge>
+              </Box>
             )}
             <Text color={message.role === 'user' ? 'white' : 'blue'}>
-              {message.role === 'user' ? ' ' : ''}{message.content}
+              {message.content}
             </Text>
           </Box>
         ))}
         
         {state.isLoading && (
-          <Box>
-            <Text color="gray">{UIMessageManager.getMessage('thinking')}</Text>
+          <Box marginBottom={1}>
+            <StatusMessage variant="info">
+              {UIMessageManager.getMessage('thinking')}
+            </StatusMessage>
           </Box>
         )}
       </Box>
 
       {/* Error */}
       {state.error && (
-        <Box borderStyle="single" borderColor="red" padding={1} marginBottom={1}>
-          <Text color="red">{UIMessageManager.getMessage('systemError', { error: state.error })}</Text>
+        <Box marginBottom={1}>
+          <Alert variant="error">
+            {UIMessageManager.getMessage('systemError', { error: state.error })}
+          </Alert>
         </Box>
       )}
 
       {/* Input */}
-      <Box borderStyle="single" borderColor="green" padding={1}>
-        <Text color="green">💬 Message: </Text>
-        <Text>{state.currentInput}</Text>
-        <Text color="gray">█</Text>
+      <Box borderStyle="single" borderColor="green" padding={1} flexDirection="row" alignItems="center">
+        <Badge color="green">💬 Message</Badge>
+        <Box marginLeft={1}>
+          <Text>{state.currentInput}</Text>
+          <Text color="gray">█</Text>
+        </Box>
       </Box>
     </Box>
   );

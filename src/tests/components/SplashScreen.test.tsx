@@ -12,10 +12,7 @@ jest.mock('ink-big-text', () => ({
   default: ({ text }: any) => React.createElement('div', { 'data-testid': 'big-text' }, text)
 }));
 
-jest.mock('ink-spinner', () => ({
-  __esModule: true,
-  default: ({ type }: any) => React.createElement('div', { 'data-testid': 'spinner', 'data-type': type })
-}));
+
 
 jest.mock('gradient-string', () => ({
   rainbow: (text: string) => text,

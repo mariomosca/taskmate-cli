@@ -16,10 +16,11 @@ export default {
     }]
   },
   transformIgnorePatterns: [
-    'node_modules/(?!(ink-testing-library|ink|ink-text-input|ink-big-text|ink-spinner|figures|gradient-string)/)'
+    'node_modules/(?!(ink-testing-library|ink|ink-text-input|ink-big-text|ink-spinner|figures|gradient-string|@inkjs\/ui)/)'
   ],
   moduleNameMapper: {
-    '^(\\.{1,2}/.*)\\.js$': '$1'
+    '^(\\.{1,2}/.*)\\.js$': '$1',
+    '^@inkjs/ui$': '<rootDir>/src/tests/__mocks__/@inkjs/ui.tsx'
   },
   collectCoverageFrom: [
     'src/**/*.{ts,tsx}',

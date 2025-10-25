@@ -1,5 +1,6 @@
 import React from 'react';
 import { Box, Text } from 'ink';
+import { StatusMessage, Alert, Badge } from '@inkjs/ui';
 import { Message } from '../types/index.js';
 import { LoadingStep } from '../services/CommandHandler.js';
 import { LoadingIndicator } from './LoadingIndicator.js';
@@ -13,8 +14,6 @@ interface ContentAreaProps {
   loadingMessage?: string;
   loadingSteps?: LoadingStep[];
 }
-
-
 
 export const ContentArea = ({
   messages,
@@ -37,10 +36,9 @@ export const ContentArea = ({
       timestamp: msg.timestamp
     }))
   });
+
   const renderMessage = (message: Message) => {
     const isUser = message.role === 'user';
-    const icon = isUser ? figures.arrowRight : '';
-    const color = isUser ? 'cyan' : 'green';
     
     // Detailed log for each rendered message
     logger.debug('Rendering message', {
@@ -58,14 +56,19 @@ export const ContentArea = ({
     return (
       <Box key={message.id} flexDirection="column" marginBottom={1}>
         {isUser && (
-          <Box flexDirection="row" alignItems="center" marginBottom={0}>
-            <Text color={color}>{icon} </Text>
-            <Text color={color} bold>Tu</Text>
+          <Box flexDirection="row" alignItems="center" marginBottom={1}>
+            <Badge color="green">👤 Tu</Badge>
           </Box>
         )}
         
-        <Box paddingLeft={isUser ? 3 : 0}>
-          <Text color={isUser ? 'white' : 'green'}>
+        {message.role === 'assistant' && (
+          <Box flexDirection="row" alignItems="center" marginBottom={1}>
+            <Badge color="blue">🤖 Assistant</Badge>
+          </Box>
+        )}
+        
+        <Box paddingLeft={isUser ? 1 : 0}>
+          <Text color={isUser ? 'white' : 'blue'}>
             {message.content || '(empty message)'}
           </Text>
         </Box>
@@ -79,26 +82,30 @@ export const ContentArea = ({
       {loadingSteps && loadingSteps.length > 0 ? (
         <Box flexDirection="column">
           {loadingSteps.map((step) => (
-            <Box key={step.id} flexDirection="row" alignItems="center">
-              {step.status === 'loading' && (
-                <Text color="blue">{figures.ellipsis} </Text>
-              )}
-              {step.status === 'completed' && (
-                <Text color="green">✓ </Text>
-              )}
-              {step.status === 'error' && (
-                <Text color="red">✗ </Text>
-              )}
-              {step.status === 'pending' && (
-                <Text color="gray">○ </Text>
-              )}
-              <Text color={
-                step.status === 'loading' ? 'blue' : 
-                step.status === 'completed' ? 'green' : 
-                step.status === 'error' ? 'red' : 'gray'
-              }>
+            <Box key={step.id} flexDirection="row" alignItems="center" marginBottom={1}>
+              <Box marginRight={1}>
+                {step.status === 'loading' && (
+                  <Badge color="blue">⏳</Badge>
+                )}
+                {step.status === 'completed' && (
+                  <Badge color="green">✓</Badge>
+                )}
+                {step.status === 'error' && (
+                  <Badge color="red">✗</Badge>
+                )}
+                {step.status === 'pending' && (
+                  <Badge color="gray">○</Badge>
+                )}
+              </Box>
+              <StatusMessage 
+                variant={
+                  step.status === 'loading' ? 'info' : 
+                  step.status === 'completed' ? 'success' : 
+                  step.status === 'error' ? 'error' : 'info'
+                }
+              >
                 {step.message}
-              </Text>
+              </StatusMessage>
             </Box>
           ))}
         </Box>
@@ -108,7 +115,6 @@ export const ContentArea = ({
           type="api"
           showTimer={true}
           showSpinner={true}
-          fadeEffect={true}
         />
       )}
     </Box>
@@ -123,12 +129,14 @@ export const ContentArea = ({
     >
       {messages.length === 0 && !isLoading ? (
         <Box flexDirection="column" alignItems="center" justifyContent="center" flexGrow={1}>
-          <Text color="gray" dimColor>
-            {figures.info} No messages yet
-          </Text>
-          <Text color="gray" dimColor>
-            Start a conversation or use / for commands
-          </Text>
+          <Alert variant="info">
+            No messages yet
+          </Alert>
+          <Box marginTop={1}>
+            <StatusMessage variant="info">
+              Start a conversation or use / for commands
+            </StatusMessage>
+          </Box>
         </Box>
       ) : (
         <>

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Box, useApp } from 'ink';
+import { ThemeProvider, defaultTheme } from '@inkjs/ui';
 import { SplashScreen } from './components/SplashScreen.js';
 import { InputArea } from './components/InputArea.js';
 import { ContentArea } from './components/ContentArea.js';
@@ -190,13 +191,17 @@ export const App: React.FC<AppProps> = ({ cliArgs }) => {
     await handleResumeSpecificSession(sessionId);
   };
 
-  const handleSessionSelectorCancel = () => {
+  const handleSessionSelectorCancel = async () => {
     setShowSessionSelector(false);
     // Create new session instead
-    sessionManager.createSession(
+    const newSession = await sessionManager.createSession(
       `Session ${new Date().toLocaleDateString()}`,
       'claude'
     );
+    
+    // Update the interface to show the new session
+    setMessages([]);
+    await addSystemMessage(UIMessageManager.getMessage('newSessionCreated', { name: newSession.name, id: newSession.id }));
   };
 
   // Update context information from session manager
@@ -416,57 +421,59 @@ export const App: React.FC<AppProps> = ({ cliArgs }) => {
   };
 
   return (
-    <Box flexDirection="column" height="100%">
-      {/* Content Area - shows splash with session selector or messages */}
-      <Box flexGrow={1}>
-        <Box flexDirection="column">
-          <SplashScreen 
-            keepVisible={true}
-            onComplete={() => setSplashCompleted(true)}
-            currentModel={llmService.getCurrentModel()}
-          />
-          {showSessionSelector && splashCompleted && (
-            <SessionSelector
-              sessions={sessions}
-              selectedIndex={selectedSessionIndex}
-              onIndexChange={setSelectedSessionIndex}
-              onSessionSelected={handleSessionSelected}
-              onCancel={handleSessionSelectorCancel}
-              loading={false}
-              currentPage={currentPage}
-              totalSessions={totalSessions}
-              hasMore={hasMore}
-              onNextPage={handleNextPage}
-              onPrevPage={handlePrevPage}
+    <ThemeProvider theme={defaultTheme}>
+      <Box flexDirection="column" height="100%">
+        {/* Content Area - shows splash with session selector or messages */}
+        <Box flexGrow={1}>
+          <Box flexDirection="column">
+            <SplashScreen 
+              keepVisible={true}
+              onComplete={() => setSplashCompleted(true)}
+              currentModel={llmService.getCurrentModel()}
             />
-          )}
-          {!showSessionSelector && (
-            <ContentArea 
-              messages={messages}
-              isLoading={isLoading}
-              loadingMessage={loadingMessage}
-              loadingSteps={loadingSteps}
-            />
-          )}
+            {showSessionSelector && splashCompleted && (
+              <SessionSelector
+                sessions={sessions}
+                selectedIndex={selectedSessionIndex}
+                onIndexChange={setSelectedSessionIndex}
+                onSessionSelected={handleSessionSelected}
+                onCancel={handleSessionSelectorCancel}
+                loading={false}
+                currentPage={currentPage}
+                totalSessions={totalSessions}
+                hasMore={hasMore}
+                onNextPage={handleNextPage}
+                onPrevPage={handlePrevPage}
+              />
+            )}
+            {!showSessionSelector && (
+              <ContentArea 
+                messages={messages}
+                isLoading={isLoading}
+                loadingMessage={loadingMessage}
+                loadingSteps={loadingSteps}
+              />
+            )}
+          </Box>
         </Box>
-      </Box>
 
-      {/* Context Indicator - above input */}
-      {!showSessionSelector && (
-        <ContextIndicator
-          contextInfo={contextInfo}
-          contextDescription={contextDescription}
-          costInfo={costInfo}
-          position="above-input"
+        {/* Context Indicator - above input */}
+        {!showSessionSelector && (
+          <ContextIndicator
+            contextInfo={contextInfo}
+            contextDescription={contextDescription}
+            costInfo={costInfo}
+            position="above-input"
+          />
+        )}
+
+        {/* Input Area - always at bottom */}
+        <InputArea
+          onSubmit={handleSubmit}
+          onSlashCommand={handleSlashCommand}
+          disabled={isLoading || !splashCompleted || showSessionSelector}
         />
-      )}
-
-      {/* Input Area - always at bottom */}
-      <InputArea
-        onSubmit={handleSubmit}
-        onSlashCommand={handleSlashCommand}
-        disabled={isLoading || !splashCompleted || showSessionSelector}
-      />
-    </Box>
+      </Box>
+    </ThemeProvider>
   );
 };

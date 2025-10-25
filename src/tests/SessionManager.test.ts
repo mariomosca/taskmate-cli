@@ -51,7 +51,7 @@ describe('SessionManager', () => {
     test('should create session with default name when none provided', async () => {
       const session = await sessionManager.createSession();
       
-      expect(session.name).toMatch(/^Sessione \d{1,2}\/\d{1,2}\/\d{4}$/);
+      expect(session.name).toMatch(/^Session \d{1,2}\/\d{1,2}\/\d{4}$/);
       expect(session.llmProvider).toBe('claude');
     });
 

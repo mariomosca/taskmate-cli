@@ -1,6 +1,6 @@
 import React from 'react';
 import { Box, Text } from 'ink';
-import Spinner from 'ink-spinner';
+import { Spinner, StatusMessage, Badge } from '@inkjs/ui';
 
 export interface LoadingStep {
   id: string;
@@ -18,40 +18,36 @@ export const ProgressiveLoader: React.FC<ProgressiveLoaderProps> = ({ steps }) =
     <Box flexDirection="column">
       {steps.map((step, index) => (
         <Box key={step.id} marginBottom={(step.status === 'completed' && step.result) ? 1 : 0}>
-          <Box>
-            {step.status === 'loading' && (
-              <Box marginRight={1}>
-                <Text color="blue">
-                  <Spinner type="dots" />
-                </Text>
-              </Box>
-            )}
-            {step.status === 'completed' && (
-              <Box marginRight={1}>
-                <Text color="green">✓</Text>
-              </Box>
-            )}
-            {step.status === 'error' && (
-              <Box marginRight={1}>
-                <Text color="red">✗</Text>
-              </Box>
-            )}
-            {step.status === 'pending' && (
-              <Box marginRight={1}>
-                <Text color="gray">○</Text>
-              </Box>
-            )}
-            <Text color={
-              step.status === 'loading' ? 'blue' : 
-              step.status === 'completed' ? 'green' : 
-              step.status === 'error' ? 'red' : 'gray'
-            }>
+          <Box flexDirection="row" alignItems="center">
+            <Box marginRight={1}>
+              {step.status === 'loading' && (
+                <Badge color="blue">
+                  <Spinner />
+                </Badge>
+              )}
+              {step.status === 'completed' && (
+                <Badge color="green">✓</Badge>
+              )}
+              {step.status === 'error' && (
+                <Badge color="red">✗</Badge>
+              )}
+              {step.status === 'pending' && (
+                <Badge color="gray">○</Badge>
+              )}
+            </Box>
+            <StatusMessage 
+              variant={
+                step.status === 'loading' ? 'info' : 
+                step.status === 'completed' ? 'success' : 
+                step.status === 'error' ? 'error' : 'info'
+              }
+            >
               {step.message}
-            </Text>
+            </StatusMessage>
           </Box>
           {step.status === 'completed' && step.result && (
-            <Box marginTop={1} marginLeft={2}>
-              <Text>{step.result}</Text>
+            <Box paddingLeft={2} marginTop={1}>
+              <Text color="gray">{step.result}</Text>
             </Box>
           )}
         </Box>

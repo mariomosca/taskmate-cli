@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Box, Text, useInput } from 'ink';
+import { Select } from '@inkjs/ui';
 import { UIMessageManager } from '../utils/UIMessages.js';
 
 interface SessionInfo {
@@ -36,18 +37,20 @@ export const SessionSelector: React.FC<SessionSelectorProps> = ({
   onNextPage,
   onPrevPage
 }) => {
+  const [selectedSessionId, setSelectedSessionId] = useState<string | undefined>();
+
+  // Update selected session when selectedIndex changes
+  useEffect(() => {
+    if (sessions[selectedIndex]) {
+      setSelectedSessionId(sessions[selectedIndex].id);
+    }
+  }, [selectedIndex, sessions]);
+
+  // Handle pagination navigation
   useInput((input, key) => {
     if (loading) return;
 
-    if (key.upArrow && selectedIndex > 0) {
-      onIndexChange(selectedIndex - 1);
-    } else if (key.downArrow && selectedIndex < sessions.length - 1) {
-      onIndexChange(selectedIndex + 1);
-    } else if (key.return) {
-      if (sessions[selectedIndex]) {
-        onSessionSelected(sessions[selectedIndex].id);
-      }
-    } else if (key.escape || input === 'q') {
+    if (key.escape || input === 'q') {
       onCancel();
     } else if (key.rightArrow && hasMore && onNextPage) {
       onNextPage();
@@ -73,70 +76,48 @@ export const SessionSelector: React.FC<SessionSelectorProps> = ({
     );
   }
 
-  const formatDate = (date: Date) => {
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-    
-    if (diffDays === 0) {
-      return `oggi alle ${date.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}`;
-    } else if (diffDays === 1) {
-      return 'ieri';
-    } else if (diffDays < 7) {
-      return `${diffDays} giorni fa`;
-    } else {
-      return date.toLocaleDateString('it-IT');
+  // Convert sessions to Select options
+  const options = sessions.map(session => ({
+    label: `${session.name} (${session.messageCount} messages, ${session.lastActivity.toLocaleDateString()})`,
+    value: session.id
+  }));
+
+  const handleSessionChange = (sessionId: string) => {
+    setSelectedSessionId(sessionId);
+    const sessionIndex = sessions.findIndex(s => s.id === sessionId);
+    if (sessionIndex !== -1) {
+      onIndexChange(sessionIndex);
+      onSessionSelected(sessionId);
     }
   };
 
   return (
     <Box flexDirection="column" padding={1}>
-      <Text color="cyan" bold>
+      <Text color="green" bold>
         {UIMessageManager.getMessage('selectSession')}
       </Text>
-      <Text color="gray">
-        {UIMessageManager.getMessage('navigationHelp')}
-        {(hasMore || currentPage > 0) ? ', ←/→ to change page' : ''}
-      </Text>
-      {totalSessions > 0 && (
-        <Text color="yellow">
-          Page {currentPage + 1} - Showing {sessions.length} of {totalSessions} sessions
+      
+      <Box marginTop={1}>
+        <Select
+          options={options}
+          defaultValue={selectedSessionId}
+          onChange={handleSessionChange}
+          visibleOptionCount={5}
+        />
+      </Box>
+      
+      <Box marginTop={1}>
+        <Text color="gray">
+          Use arrow keys to navigate, Enter to select, Escape to cancel
         </Text>
-      )}
-      <Text> </Text>
-
-      {sessions.map((session: SessionInfo, index: number) => (
-        <Box key={session.id} flexDirection="column" marginY={0}>
-          <Box>
-            <Text color={index === selectedIndex ? 'black' : 'white'} 
-                  backgroundColor={index === selectedIndex ? 'cyan' : undefined}>
-              {index === selectedIndex ? '► ' : '  '}
-              {session.name}
-            </Text>
-            <Text color="gray"> - {session.messageCount} messaggi, {formatDate(session.lastActivity)}</Text>
-          </Box>
-          <Text color="gray" dimColor>
-            {'  '}ID: {session.id}
-          </Text>
-        </Box>
-      ))}
-
-      <Text> </Text>
-      <Text color="gray" dimColor>
-        Selected session: {sessions[selectedIndex]?.name || 'None'}
-      </Text>
-      {sessions[selectedIndex] && (
-        <Text color="blue" dimColor>
-          ID completo: {sessions[selectedIndex].id}
-        </Text>
-      )}
+      </Box>
       
       {(hasMore || currentPage > 0) && (
         <Box marginTop={1}>
           <Text color="gray">
-            {currentPage > 0 ? '← Previous page' : ''}
-            {(currentPage > 0 && hasMore) ? ' | ' : ''}
-            {hasMore ? 'Next page →' : ''}
+            Page {currentPage + 1} of {Math.ceil(totalSessions / sessions.length)} | 
+            {currentPage > 0 && ' ← Previous'} 
+            {hasMore && ' Next →'}
           </Text>
         </Box>
       )}
