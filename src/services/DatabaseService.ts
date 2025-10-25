@@ -437,6 +437,10 @@ export class DatabaseService {
     this.db.close();
   }
 
+  getDatabase(): Database.Database {
+    return this.db;
+  }
+
   // Transaction Support
   transaction<T>(fn: () => T): T {
     const transaction = this.db.transaction(fn);

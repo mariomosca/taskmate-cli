@@ -3,6 +3,7 @@ import { hideBin } from 'yargs/helpers';
 import { UIMessageManager } from './UIMessages.js';
 
 export interface CLIArgs {
+  command?: string;
   resume?: boolean;
   sessionId?: string;
   debug?: boolean;
@@ -13,6 +14,7 @@ export interface CLIArgs {
 
 export function parseCliArgs(): CLIArgs {
   const argv = yargs(hideBin(process.argv))
+    .command('init', 'Initialize TaskMate CLI with API keys and user profile')
     .option('resume', {
       alias: 'r',
       type: 'boolean',
@@ -49,6 +51,7 @@ export function parseCliArgs(): CLIArgs {
     .help()
     .alias('help', 'h')
     .example('$0', UIMessageManager.getMessage('startExample'))
+    .example('$0 init', 'Initialize TaskMate CLI setup')
     .example('$0 --resume', 'Show available sessions for resuming')
     .example('$0 --resume --session-id abc123', UIMessageManager.getMessage('resumeExample'))
     .example('$0 --provider claude', 'Use Claude as LLM provider')
@@ -56,6 +59,7 @@ export function parseCliArgs(): CLIArgs {
     .parseSync();
 
   return {
+    command: argv._[0] as string,
     resume: argv.resume,
     sessionId: argv['session-id'],
     debug: argv.debug,

@@ -151,6 +151,14 @@ export class CommandHandler {
       usage: '/clear',
       handler: this.handleClearCommand.bind(this)
     });
+
+    // Configuration Commands
+    this.registerCommand({
+      command: '/init',
+      description: 'Initialize user profile and configuration',
+      usage: '/init',
+      handler: this.handleInitCommand.bind(this)
+    });
   }
 
   private registerCommand(command: SlashCommand): void {
@@ -443,6 +451,10 @@ export class CommandHandler {
     // This would typically clear the chat interface
     // For now, we just send a message
     this.context.onOutput(`🧹 **Chat pulita!**\n\nLa cronologia della chat è stata cancellata dalla vista.`);
+  }
+
+  private async handleInitCommand(args: string[]): Promise<void> {
+    this.context.onOutput(`🚀 **Inizializzazione Profilo Utente**\n\nIl comando \`/init\` ti guiderà attraverso la configurazione iniziale del tuo profilo e delle API key.\n\n⚠️ **Nota**: Per una configurazione completa, esegui il comando \`init\` direttamente dal terminale:\n\n\`\`\`bash\nnpm run cli init\n\`\`\`\n\nQuesto comando configurerà:\n- 🔑 API keys (Anthropic/Claude, Google/Gemini, Todoist)\n- 🤖 Provider e modello LLM predefinito\n- 👤 Profilo utente personalizzato\n- 📁 File di configurazione\n\nDopo l'inizializzazione, potrai utilizzare tutte le funzionalità avanzate di TaskMate CLI!`);
   }
 
   // Utility Methods

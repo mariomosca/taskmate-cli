@@ -12,6 +12,7 @@ import { llmService } from './services/LLMService.js';
 import { TodoistService } from './services/TodoistService.js';
 import { TodoistAIService } from './services/TodoistAIService.js';
 import { DatabaseService } from './services/DatabaseService.js';
+import { EnhancedUserContextService } from './services/EnhancedUserContextService.js';
 import { CommandHandler, CommandContext, LoadingStep } from './services/CommandHandler.js';
 import { Message } from './types/index.js';
 import { logger } from './utils/logger.js';
@@ -59,6 +60,12 @@ export const App: React.FC<AppProps> = ({ cliArgs }) => {
     manager.getContextManager().setTodoistAIService(todoistAIService);
     return manager;
   });
+
+  logger.debug('Creating EnhancedUserContextService...');
+  const [userContextService] = useState(() => new EnhancedUserContextService(
+    databaseService,
+    llmService
+  ));
 
   const addSystemMessage = async (content: string) => {
     const message: Message = {
@@ -233,14 +240,37 @@ export const App: React.FC<AppProps> = ({ cliArgs }) => {
     if (splashCompleted && !showSessionSelector && messages.length === 0) {
       // Create new session when splash completes in normal mode
       const createNewSession = async () => {
-        await sessionManager.createSession(
-          `Session ${new Date().toLocaleDateString()}`,
-          'claude'
-        );
+        try {
+          // Create the session first
+          await sessionManager.createSession(
+            `Session ${new Date().toLocaleDateString()}`,
+            'claude'
+          );
+
+          // Generate and add initial user context
+          logger.debug('Generating initial user context...');
+          // Use fewer sessions for faster startup, allow async refresh
+          const enhancedContext = await userContextService.generateEnhancedContext();
+        const userContext = userContextService.getFormattedContext(enhancedContext);
+          
+          if (userContext) {
+            logger.debug('Adding user context to new session');
+            await addSystemMessage(userContext);
+          } else {
+            logger.debug('No user context generated - starting fresh session');
+          }
+        } catch (error) {
+          logger.error('Error creating session with user context:', error);
+          // Fallback: create session without context
+          await sessionManager.createSession(
+            `Session ${new Date().toLocaleDateString()}`,
+            'claude'
+          );
+        }
       };
       createNewSession();
     }
-  }, [splashCompleted, showSessionSelector, messages.length, sessionManager]);
+  }, [splashCompleted, showSessionSelector, messages.length, sessionManager, userContextService]);
 
   // Handle session selector after splash completion
   useEffect(() => {
