@@ -22,7 +22,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete, duration
   const [isFirstTime, setIsFirstTime] = useState(true);
 
   const steps = [
-    'Inizializzazione Todoist AI CLI...',
+    'Inizializzazione TaskMate CLI...',
     'Caricamento configurazione...',
     'Connessione ai servizi AI...',
     'Pronto!'
@@ -85,7 +85,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete, duration
     >
       <Box>
         <BigText 
-          text="TODOIST AI" 
+          text="TASKMATE" 
           font="block"
           colors={['#FF6B6B', '#4ECDC4', '#45B7D1']}
         />

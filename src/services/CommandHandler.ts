@@ -385,7 +385,7 @@ export class CommandHandler {
     }
 
     let output = `🆘 **Comandi disponibili:**\n\n`;
-    output += `💡 **Nota:** Per gestire task e progetti Todoist, usa il linguaggio naturale! L'AI gestirà automaticamente le operazioni.\n\n`;
+    output += `💡 **Nota:** Per gestire task e progetti, usa il linguaggio naturale! L'AI gestirà automaticamente le operazioni.\n\n`;
     
     const categories = {
       'Sessioni': ['/sessions', '/new', '/save', '/load', '/delete-session'],

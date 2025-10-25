@@ -1,4 +1,4 @@
-import { logger } from './logger';
+import { logger } from './logger.js';
 import { 
   AppError, 
   ErrorType, 
@@ -10,7 +10,7 @@ import {
   AuthenticationError,
   FileSystemError,
   LLMError
-} from '../types/errors';
+} from '../types/errors.js';
 
 /**
  * Gestore centralizzato degli errori con supporto per retry logic e logging strutturato

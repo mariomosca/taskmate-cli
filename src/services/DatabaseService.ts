@@ -43,7 +43,7 @@ export class DatabaseService {
 
     // Set default database path
     if (!this.config.dbPath) {
-      const appDataDir = join(homedir(), '.todoist-ai-cli');
+      const appDataDir = join(homedir(), '.taskmate-cli');
       if (!existsSync(appDataDir)) {
         mkdirSync(appDataDir, { recursive: true });
       }

@@ -1,7 +1,7 @@
 {
-  "name": "todoist-ai-cli",
+  "name": "taskmate-cli",
   "version": "0.1.0",
-  "description": "AI-powered CLI for Todoist task management",
+  "description": "AI-powered CLI for intelligent task management",
   "main": "dist/index.js",
   "type": "module",
   "engines": {
@@ -16,7 +16,7 @@
     "type-check": "tsc --noEmit"
   },
   "bin": {
-    "todoist-ai": "./dist/index.js"
+    "taskmate": "./dist/index.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.67.0",
@@ -51,15 +51,17 @@
     "ink-testing-library": "^3.0.0",
     "jest": "^30.2.0",
     "ts-jest": "^29.4.5",
+    "ts-node": "^10.9.2",
     "tsx": "^4.20.6",
     "typescript": "^5.3.0"
   },
   "keywords": [
     "cli",
-    "todoist",
     "ai",
     "productivity",
-    "task-management"
+    "task-management",
+    "assistant",
+    "automation"
   ],
   "author": "Mario Mosca",
   "license": "MIT"

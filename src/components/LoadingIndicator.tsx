@@ -24,7 +24,7 @@ export const LoadingIndicator: React.FC<LoadingIndicatorProps> = ({
   const loadingMessages = {
     tasks: [
       'Recuperando i tuoi task',
-      'Sincronizzando con Todoist',
+      'Sincronizzando con il task manager',
       'Organizzando le attività',
       'Quasi pronto'
     ],

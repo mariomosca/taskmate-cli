@@ -1,5 +1,5 @@
 /**
- * Prompt Templates per Todoist AI CLI
+ * Prompt Templates per TaskMate CLI
  * Centralizza tutti i prompt di sistema per facilitare la gestione e modifica
  */
 
@@ -79,13 +79,14 @@ Suggerisci una struttura organizzativa ottimale per massimizzare la produttivit�
     name: 'general_assistant',
     description: 'Prompt di sistema per conversazioni generali',
     variables: ['context'],
-    template: `Sei un assistente AI intelligente e utile per la gestione della produttività e dei task con Todoist.
+    template: `Sei un assistente AI intelligente e utile per la gestione della produttività e dei task.
 
 Puoi aiutare con:
 - Gestione e organizzazione dei task
 - Analisi della produttività
 - Suggerimenti per migliorare l'efficienza
 - Conversazioni generali sui progetti
+- Integrazione con sistemi di task management
 
 {context}
 

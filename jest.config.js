@@ -9,9 +9,15 @@ export default {
   ],
   transform: {
     '^.+\\.(ts|tsx)$': ['ts-jest', {
-      useESM: true
+      useESM: true,
+      tsconfig: {
+        module: 'esnext'
+      }
     }]
   },
+  transformIgnorePatterns: [
+    'node_modules/(?!(ink-testing-library|ink|ink-text-input|ink-big-text|ink-spinner|figures|gradient-string)/)'
+  ],
   moduleNameMapper: {
     '^(\\.{1,2}/.*)\\.js$': '$1'
   },
