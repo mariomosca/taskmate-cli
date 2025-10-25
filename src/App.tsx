@@ -26,6 +26,11 @@ export const App: React.FC<AppProps> = ({ cliArgs }) => {
   logger.debug('App component initializing...');
   
   const { exit } = useApp();
+  
+  // Show verbose CLI info if requested
+  if (cliArgs.verbose) {
+    console.log('🔍 CLI Arguments:', JSON.stringify(cliArgs, null, 2));
+  }
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState('');

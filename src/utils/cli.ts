@@ -8,6 +8,7 @@ export interface CLIArgs {
   debug?: boolean;
   provider?: string;
   message?: string;
+  verbose?: boolean;
 }
 
 export function parseCliArgs(): CLIArgs {
@@ -40,6 +41,11 @@ export function parseCliArgs(): CLIArgs {
       type: 'string',
       description: 'Send an initial message to start the conversation'
     })
+    .option('verbose', {
+      alias: 'v',
+      type: 'boolean',
+      description: 'Show detailed CLI argument processing and debug information'
+    })
     .help()
     .alias('help', 'h')
     .example('$0', UIMessageManager.getMessage('startExample'))
@@ -54,7 +60,8 @@ export function parseCliArgs(): CLIArgs {
     sessionId: argv['session-id'],
     debug: argv.debug,
     provider: argv.provider,
-    message: argv.message
+    message: argv.message,
+    verbose: argv.verbose
   };
 }
 
