@@ -1,6 +1,58 @@
 # 🤖 TaskMate CLI
 
+[![Version](https://img.shields.io/badge/version-0.1.0-blue.svg)](https://github.com/mariomosca/taskmate-cli)
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![Node.js](https://img.shields.io/badge/node-%3E%3D18-brightgreen.svg)](https://nodejs.org/)
+[![TypeScript](https://img.shields.io/badge/typescript-5.0+-blue.svg)](https://www.typescriptlang.org/)
+[![Test Coverage](https://img.shields.io/badge/coverage-84%25-brightgreen.svg)](#-testing)
+
 An intelligent command-line interface that integrates AI (Claude/Gemini) with task management systems for advanced activity management.
+
+## 🎬 Demo
+
+```
+🤖 TaskMate CLI v0.1.0
+┌─────────────────────────────────────────────────────────────┐
+│ 💬 Chat with AI • 📋 Manage Tasks • 🔍 Smart Commands      │
+└─────────────────────────────────────────────────────────────┘
+
+> /help
+Available commands:
+  /new        - Create new session
+  /tasks      - Show Todoist tasks  
+  /help       - Show this help
+  
+> What tasks do I have for today?
+🤖 Let me check your Todoist tasks for today...
+
+📋 Today's Tasks:
+• Review project proposal (Due: 2:00 PM)
+• Team meeting preparation (Due: 4:00 PM) 
+• Code review for feature X (No due time)
+
+> /new task "Finish README documentation" project:TaskMate
+✅ Task created successfully in TaskMate project!
+```
+
+> **📸 Note**: This is a text representation. The actual CLI features rich colors, animations, and interactive elements.
+
+## 📋 Table of Contents
+
+- [🎬 Demo](#-demo)
+- [🚀 Features](#-features)
+- [📋 Prerequisites](#-prerequisites)
+- [⚡ Quick Start](#-quick-start)
+- [🛠️ Installation](#️-installation)
+- [🚀 Usage](#-usage)
+- [🏗️ Architecture](#️-architecture)
+- [🧪 Testing](#-testing)
+- [📚 Documentation](#-documentation)
+- [🐛 Troubleshooting](#-troubleshooting)
+- [🗺️ Roadmap](#️-roadmap)
+- [🤝 Contributing](#-contributing)
+- [📄 License](#-license)
+- [🌟 Support the Project](#-support-the-project)
+- [🙏 Acknowledgments](#-acknowledgments)
 
 ## 🚀 Features
 
@@ -39,6 +91,23 @@ An intelligent command-line interface that integrates AI (Claude/Gemini) with ta
   - Todoist API Token
   - Anthropic API Key (for Claude)
   - Google AI API Key (for Gemini)
+
+## ⚡ Quick Start
+
+```bash
+# 1. Clone and install
+git clone https://github.com/mariomosca/taskmate-cli.git
+cd taskmate-cli
+npm install
+
+# 2. Setup (guided configuration)
+npm run cli init
+
+# 3. Start using TaskMate
+npm run dev
+```
+
+> **💡 Tip**: The `init` command will guide you through setting up your profile and API keys interactively.
 
 ## 🛠️ Installation
 
@@ -414,12 +483,69 @@ npm start -- --debug
 
 ## 🤝 Contributing
 
-### Development Setup
-1. Fork the repository
-2. Create feature branch: `git checkout -b feature/amazing-feature`
-3. Commit changes: `git commit -m 'Add amazing feature'`
-4. Push branch: `git push origin feature/amazing-feature`
-5. Open Pull Request
+We ❤️ contributions! Whether you're fixing bugs, adding features, improving documentation, or sharing ideas, your help makes TaskMate better for everyone.
+
+### 🚀 Ways to Contribute
+
+- 🐛 **Report bugs** - Found an issue? [Open a bug report](https://github.com/mariomosca/taskmate-cli/issues/new?template=bug_report.md)
+- 💡 **Suggest features** - Have an idea? [Request a feature](https://github.com/mariomosca/taskmate-cli/issues/new?template=feature_request.md)
+- 📖 **Improve docs** - Help make our documentation clearer
+- 🔧 **Submit code** - Fix bugs or implement new features
+- 🧪 **Write tests** - Help us improve test coverage
+- 🌍 **Translate** - Help make TaskMate accessible in more languages
+
+### 🛠️ Development Setup
+
+```bash
+# 1. Fork and clone
+git clone https://github.com/YOUR_USERNAME/taskmate-cli.git
+cd taskmate-cli
+
+# 2. Install dependencies
+npm install
+
+# 3. Set up your environment
+cp .env.example .env
+# Edit .env with your API keys
+
+# 4. Run in development mode
+npm run dev
+
+# 5. Run tests
+npm test
+```
+
+### 📋 Pull Request Process
+
+1. **Fork** the repository
+2. **Create** your feature branch (`git checkout -b feature/amazing-feature`)
+3. **Make** your changes with clear, descriptive commits
+4. **Add** tests for new functionality
+5. **Ensure** all tests pass (`npm test`)
+6. **Update** documentation if needed
+7. **Push** to your branch (`git push origin feature/amazing-feature`)
+8. **Open** a Pull Request with a clear description
+
+### 📝 Commit Convention
+
+We use [Conventional Commits](https://www.conventionalcommits.org/):
+
+```
+feat: add new task filtering options
+fix: resolve memory leak in chat session
+docs: update installation instructions
+test: add unit tests for AI integration
+```
+
+### 🎯 Good First Issues
+
+New to the project? Look for issues labeled [`good first issue`](https://github.com/mariomosca/taskmate-cli/labels/good%20first%20issue) - they're perfect for getting started!
+
+### 💬 Questions?
+
+- 💬 **Discussions**: [GitHub Discussions](https://github.com/mariomosca/taskmate-cli/discussions)
+- 🐛 **Issues**: [GitHub Issues](https://github.com/mariomosca/taskmate-cli/issues)
+- 📧 **Email**: [mario.mosca@example.com](mailto:mario.mosca@example.com)
 
 ### Coding Standards
 - TypeScript strict mode
@@ -430,7 +556,19 @@ npm start -- --debug
 
 ## 📄 License
 
-This project is licensed under the MIT License. See `LICENSE` for details.
+This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
+
+**TL;DR**: You can use, modify, and distribute this software freely, even for commercial purposes. Just include the original license notice.
+
+## 🌟 Support the Project
+
+If TaskMate CLI helps you be more productive, consider:
+
+- ⭐ **Star this repository** on GitHub
+- 🐛 **Report bugs** and suggest features
+- 🤝 **Contribute** code or documentation
+- 💬 **Share** with your developer friends
+- 📝 **Write** about your experience using TaskMate
 
 ## 🙏 Acknowledgments
 
@@ -438,11 +576,22 @@ This project is licensed under the MIT License. See `LICENSE` for details.
 - [Anthropic](https://www.anthropic.com/) - Claude AI
 - [Google AI](https://ai.google.dev/) - Gemini
 - [Todoist](https://todoist.com/) - Task management API
+- All our [contributors](https://github.com/mariomosca/taskmate-cli/graphs/contributors) who make this project better
+
+---
+
+<div align="center">
+
+**Made with ❤️ by [Mario Mosca](https://github.com/mariomosca)**
+
+[⭐ Star](https://github.com/mariomosca/taskmate-cli) • [🐛 Report Bug](https://github.com/mariomosca/taskmate-cli/issues) • [💡 Request Feature](https://github.com/mariomosca/taskmate-cli/issues) • [💬 Discussions](https://github.com/mariomosca/taskmate-cli/discussions)
+
+</div>
 
 ---
 
 **Project Status**: 🚧 Active Development  
-**Current Version**: 0.6.0-alpha  
-**Last Updated**: January 2025
+**Current Version**: 0.1.0  
+**Last Updated**: January 15, 2025
 
 For questions or support, please open an issue in the repository.
