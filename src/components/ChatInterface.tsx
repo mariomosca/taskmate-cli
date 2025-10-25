@@ -4,6 +4,7 @@ import { SessionManager } from '../services/SessionManager.js';
 import { llmService } from '../services/LLMService.js';
 import { Message } from '../types/index.js';
 import { logger } from '../utils/logger.js';
+import { UIMessageManager } from '../utils/UIMessages.js';
 
 interface ChatInterfaceProps {
   sessionManager: SessionManager;
@@ -54,7 +55,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
     try {
       logger.debug('Adding message to session...');
-      // Aggiungi il messaggio alla sessione
+      // Add message to session
       await sessionManager.addMessage(userMessage);
 
       // Prepara i messaggi per l'LLM
@@ -65,11 +66,11 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
       logger.debug('LLM messages prepared', { messageCount: llmMessages.length });
 
-      // Aggiungi il contesto della sessione se disponibile
+      // Add session context if available
       if (sessionContext && state.messages.length === 0) {
         llmMessages.unshift({
           role: 'system' as const,
-          content: `Contesto della sessione precedente: ${sessionContext}`
+          content: UIMessageManager.getMessage('sessionContext', { context: sessionContext })
         });
         logger.debug('Session context added to messages');
       }
@@ -90,7 +91,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
         }
       };
 
-      // Aggiungi la risposta alla sessione
+      // Add response to session
       await sessionManager.addMessage(assistantMessage);
 
       setState(prev => ({
@@ -103,7 +104,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
       setState(prev => ({
         ...prev,
         isLoading: false,
-        error: error instanceof Error ? error.message : 'Errore sconosciuto'
+        error: error instanceof Error ? error.message : UIMessageManager.getMessage('unknownError')
       }));
     }
   };
@@ -133,15 +134,15 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
       {/* Header */}
       <Box borderStyle="single" borderColor="cyan" padding={1} marginBottom={1}>
         <Text color="cyan" bold>
-          💬 {currentSession?.name || 'Nuova Chat'} 
+          💬 {currentSession?.name || UIMessageManager.getMessage('newChat', { name: 'New Chat' })} 
         </Text>
-        <Text color="gray"> | ESC per uscire</Text>
+        <Text color="gray"> | ESC to exit</Text>
       </Box>
 
       {/* Context info */}
       {sessionContext && state.messages.length === 0 && (
         <Box borderStyle="single" borderColor="yellow" padding={1} marginBottom={1}>
-          <Text color="yellow">📝 Sessione ripresa con contesto precedente</Text>
+          <Text color="yellow">{UIMessageManager.getMessage('sessionResumed')}</Text>
         </Box>
       )}
 
@@ -162,7 +163,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
         
         {state.isLoading && (
           <Box>
-            <Text color="gray">Sto pensando...</Text>
+            <Text color="gray">{UIMessageManager.getMessage('thinking')}</Text>
           </Box>
         )}
       </Box>
@@ -170,13 +171,13 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
       {/* Error */}
       {state.error && (
         <Box borderStyle="single" borderColor="red" padding={1} marginBottom={1}>
-          <Text color="red">❌ Errore: {state.error}</Text>
+          <Text color="red">{UIMessageManager.getMessage('systemError', { error: state.error })}</Text>
         </Box>
       )}
 
       {/* Input */}
       <Box borderStyle="single" borderColor="green" padding={1}>
-        <Text color="green">💬 Messaggio: </Text>
+        <Text color="green">💬 Message: </Text>
         <Text>{state.currentInput}</Text>
         <Text color="gray">█</Text>
       </Box>

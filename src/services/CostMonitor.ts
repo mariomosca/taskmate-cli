@@ -84,7 +84,7 @@ export class CostMonitor {
 
     this.currentSessionCost += cost;
 
-    // Salva il record
+    // Save the record
     await this.saveUsageRecord(record);
 
     return record;

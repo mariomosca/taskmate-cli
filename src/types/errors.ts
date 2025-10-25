@@ -1,50 +1,50 @@
 /**
- * Tipi di errore standardizzati per il sistema di error handling
+ * Standardized error types for the error handling system
  */
 
 export enum ErrorType {
-  // Errori di rete e API
+  // Network and API errors
   NETWORK_ERROR = 'NETWORK_ERROR',
   API_ERROR = 'API_ERROR',
   AUTHENTICATION_ERROR = 'AUTHENTICATION_ERROR',
   RATE_LIMIT_ERROR = 'RATE_LIMIT_ERROR',
   
-  // Errori di validazione
+  // Validation errors
   VALIDATION_ERROR = 'VALIDATION_ERROR',
   INVALID_INPUT = 'INVALID_INPUT',
   MISSING_REQUIRED_FIELD = 'MISSING_REQUIRED_FIELD',
   
-  // Errori di file system
+  // File system errors
   FILE_NOT_FOUND = 'FILE_NOT_FOUND',
   FILE_PERMISSION_ERROR = 'FILE_PERMISSION_ERROR',
   FILE_WRITE_ERROR = 'FILE_WRITE_ERROR',
   FILE_READ_ERROR = 'FILE_READ_ERROR',
   
-  // Errori di database
+  // Database errors
   DATABASE_ERROR = 'DATABASE_ERROR',
   DATABASE_CONNECTION_ERROR = 'DATABASE_CONNECTION_ERROR',
   
-  // Errori di sessione
+  // Session errors
   SESSION_NOT_FOUND = 'SESSION_NOT_FOUND',
   SESSION_EXPIRED = 'SESSION_EXPIRED',
   SESSION_INVALID = 'SESSION_INVALID',
   
-  // Errori di configurazione
+  // Configuration errors
   CONFIG_ERROR = 'CONFIG_ERROR',
   MISSING_CONFIG = 'MISSING_CONFIG',
   INVALID_CONFIG = 'INVALID_CONFIG',
   
-  // Errori di LLM
+  // LLM errors
   LLM_ERROR = 'LLM_ERROR',
   LLM_TIMEOUT = 'LLM_TIMEOUT',
   LLM_QUOTA_EXCEEDED = 'LLM_QUOTA_EXCEEDED',
   LLM_INVALID_RESPONSE = 'LLM_INVALID_RESPONSE',
   
-  // Errori di Todoist
+  // Todoist errors
   TODOIST_ERROR = 'TODOIST_ERROR',
   TODOIST_SYNC_ERROR = 'TODOIST_SYNC_ERROR',
   
-  // Errori generici
+  // Generic errors
   UNKNOWN_ERROR = 'UNKNOWN_ERROR',
   INTERNAL_ERROR = 'INTERNAL_ERROR',
   OPERATION_FAILED = 'OPERATION_FAILED'

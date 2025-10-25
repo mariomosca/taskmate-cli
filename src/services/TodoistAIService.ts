@@ -9,6 +9,7 @@ import {
   TaskSummary,
   ProjectSummary
 } from '../types/todoist.js';
+import { UIMessageManager } from '../utils/UIMessages.js';
 
 /**
  * Tool definition for LLM function calling
@@ -55,15 +56,15 @@ export class TodoistAIService {
     // Task Management Tools
     this.registerTool({
       name: 'get_tasks',
-      description: 'Recupera le task dell\'utente da Todoist. Può filtrare per progetto, sezione, etichetta o query personalizzata.',
+      description: 'Retrieve user tasks from Todoist. Can filter by project, section, label or custom query.',
       parameters: {
         type: 'object',
         properties: {
-          project_id: { type: 'string', description: 'ID del progetto per filtrare le task' },
-          section_id: { type: 'string', description: 'ID della sezione per filtrare le task' },
-          label: { type: 'string', description: 'Etichetta per filtrare le task' },
-          filter: { type: 'string', description: 'Query di filtro personalizzata (es: "today", "overdue")' },
-          ids: { type: 'array', items: { type: 'string' }, description: 'Array di ID specifici di task' }
+          project_id: { type: 'string', description: 'Project ID to filter tasks' },
+          section_id: { type: 'string', description: 'Section ID to filter tasks' },
+          label: { type: 'string', description: 'Label to filter tasks' },
+          filter: { type: 'string', description: 'Custom filter query (e.g., "today", "overdue")' },
+          ids: { type: 'array', items: { type: 'string' }, description: 'Array of specific task IDs' }
         },
         required: []
       },
@@ -72,18 +73,18 @@ export class TodoistAIService {
 
     this.registerTool({
       name: 'create_task',
-      description: 'Crea una nuova task in Todoist. Supporta contenuto, descrizione, progetto, priorità, scadenza e etichette.',
+      description: UIMessageManager.getMessage('createTask'),
       parameters: {
         type: 'object',
         properties: {
-          content: { type: 'string', description: 'Contenuto/titolo della task (obbligatorio)' },
-          description: { type: 'string', description: 'Descrizione dettagliata della task' },
-          project_id: { type: 'string', description: 'ID del progetto dove creare la task' },
-          section_id: { type: 'string', description: 'ID della sezione dove creare la task' },
-          priority: { type: 'number', enum: [1, 2, 3, 4], description: 'Priorità: 1=normale, 2=alta, 3=molto alta, 4=urgente' },
-          due_string: { type: 'string', description: 'Scadenza in linguaggio naturale (es: "domani", "lunedì prossimo")' },
-          due_date: { type: 'string', description: 'Data di scadenza in formato YYYY-MM-DD' },
-          labels: { type: 'array', items: { type: 'string' }, description: 'Array di etichette da assegnare' }
+          content: { type: 'string', description: 'Task content/title (required)' },
+          description: { type: 'string', description: 'Detailed task description' },
+          project_id: { type: 'string', description: 'Project ID where to create the task' },
+          section_id: { type: 'string', description: 'Section ID where to create the task' },
+          priority: { type: 'number', enum: [1, 2, 3, 4], description: 'Priority: 1=normal, 2=high, 3=very high, 4=urgent' },
+          due_string: { type: 'string', description: 'Due date in natural language (e.g., "tomorrow", "next Monday")' },
+          due_date: { type: 'string', description: 'Due date in YYYY-MM-DD format' },
+          labels: { type: 'array', items: { type: 'string' }, description: 'Array of labels to assign' }
         },
         required: ['content']
       },
@@ -92,45 +93,47 @@ export class TodoistAIService {
 
     this.registerTool({
       name: 'complete_task',
-      description: 'Completa una task esistente in Todoist.',
+      description: 'Complete an existing task in Todoist.',
       parameters: {
         type: 'object',
         properties: {
-          task_id: { type: 'string', description: 'ID della task da completare' }
+          id: { type: 'string', description: 'ID of the task to complete' }
         },
-        required: ['task_id']
+        required: ['id']
       },
       handler: this.handleCompleteTask.bind(this)
     });
 
     this.registerTool({
       name: 'update_task',
-      description: 'Aggiorna una task esistente in Todoist. Può modificare contenuto, descrizione, priorità, scadenza e etichette.',
+      description: UIMessageManager.getMessage('updateTask'),
       parameters: {
         type: 'object',
         properties: {
-          task_id: { type: 'string', description: 'ID della task da aggiornare' },
-          content: { type: 'string', description: 'Nuovo contenuto/titolo della task' },
-          description: { type: 'string', description: 'Nuova descrizione della task' },
-          priority: { type: 'number', enum: [1, 2, 3, 4], description: 'Nuova priorità' },
-          due_string: { type: 'string', description: 'Nuova scadenza in linguaggio naturale' },
-          due_date: { type: 'string', description: 'Nuova data di scadenza in formato YYYY-MM-DD' },
-          labels: { type: 'array', items: { type: 'string' }, description: 'Nuove etichette' }
+          id: { type: 'string', description: 'ID of the task to update' },
+          content: { type: 'string', description: 'New task content/title' },
+          description: { type: 'string', description: UIMessageManager.getMessage('newDescription') },
+          project_id: { type: 'string', description: 'New project ID' },
+          section_id: { type: 'string', description: 'New section ID' },
+          priority: { type: 'number', enum: [1, 2, 3, 4], description: UIMessageManager.getMessage('newPriority') },
+          due_string: { type: 'string', description: UIMessageManager.getMessage('newDueDate') },
+          due_date: { type: 'string', description: 'New due date in YYYY-MM-DD format' },
+          labels: { type: 'array', items: { type: 'string' }, description: 'New array of labels' }
         },
-        required: ['task_id']
+        required: ['id']
       },
       handler: this.handleUpdateTask.bind(this)
     });
 
     this.registerTool({
       name: 'delete_task',
-      description: 'Elimina una task da Todoist.',
+      description: UIMessageManager.getMessage('deleteTask'),
       parameters: {
         type: 'object',
         properties: {
-          task_id: { type: 'string', description: 'ID della task da eliminare' }
+          id: { type: 'string', description: UIMessageManager.getMessage('taskToDelete') }
         },
-        required: ['task_id']
+        required: ['id']
       },
       handler: this.handleDeleteTask.bind(this)
     });
@@ -138,11 +141,11 @@ export class TodoistAIService {
     // Project Management Tools
     this.registerTool({
       name: 'get_projects',
-      description: 'Recupera tutti i progetti dell\'utente da Todoist.',
+      description: 'Retrieve all user projects from Todoist.',
       parameters: {
         type: 'object',
         properties: {
-          ids: { type: 'array', items: { type: 'string' }, description: 'Array di ID specifici di progetti' }
+          ids: { type: 'array', items: { type: 'string' }, description: 'Array of specific project IDs' }
         },
         required: []
       },
@@ -151,14 +154,14 @@ export class TodoistAIService {
 
     this.registerTool({
       name: 'create_project',
-      description: 'Crea un nuovo progetto in Todoist.',
+      description: 'Create a new project in Todoist.',
       parameters: {
         type: 'object',
         properties: {
-          name: { type: 'string', description: 'Nome del progetto (obbligatorio)' },
-          parent_id: { type: 'string', description: 'ID del progetto padre per creare un sottoprogetto' },
-          color: { type: 'string', description: 'Colore del progetto' },
-          is_favorite: { type: 'boolean', description: 'Se il progetto è preferito' }
+          name: { type: 'string', description: 'Project name (required)' },
+          parent_id: { type: 'string', description: 'Parent project ID to create a subproject' },
+          color: { type: 'string', description: 'Project color' },
+          is_favorite: { type: 'boolean', description: 'Whether the project is favorite' }
         },
         required: ['name']
       },
@@ -168,7 +171,7 @@ export class TodoistAIService {
     // Summary and Analysis Tools
     this.registerTool({
       name: 'get_task_summary',
-      description: 'Ottiene un riassunto delle task dell\'utente con statistiche utili.',
+      description: 'Get a summary of user tasks with useful statistics.',
       parameters: {
         type: 'object',
         properties: {},
@@ -179,11 +182,11 @@ export class TodoistAIService {
 
     this.registerTool({
       name: 'search_tasks',
-      description: 'Cerca task usando una query di ricerca.',
+      description: 'Search tasks using a search query.',
       parameters: {
         type: 'object',
         properties: {
-          query: { type: 'string', description: 'Query di ricerca per le task' }
+          query: { type: 'string', description: 'Search query for tasks' }
         },
         required: ['query']
       },
@@ -192,7 +195,7 @@ export class TodoistAIService {
 
     this.registerTool({
        name: 'get_changes_since_last_sync',
-       description: 'Ottiene informazioni dettagliate sui cambiamenti dall\'ultima sincronizzazione con Todoist.',
+       description: 'Get detailed information about changes since last synchronization with Todoist.',
        parameters: {
          type: 'object',
          properties: {},
@@ -224,7 +227,7 @@ export class TodoistAIService {
     if (!tool) {
       return {
         success: false,
-        message: `Tool '${toolName}' non trovato`,
+        message: `Tool '${toolName}' not found`,
         error: 'TOOL_NOT_FOUND'
       };
     }
@@ -233,13 +236,13 @@ export class TodoistAIService {
       const result = await tool.handler(parameters);
       return {
         success: true,
-        message: `Operazione '${toolName}' completata con successo`,
+        message: `Operation '${toolName}' completed successfully`,
         data: result
       };
     } catch (error) {
       return {
         success: false,
-        message: `Errore nell'esecuzione di '${toolName}': ${error instanceof Error ? error.message : 'Errore sconosciuto'}`,
+        message: `Error executing '${toolName}': ${error instanceof Error ? error.message : 'Unknown error'}`,
         error: error instanceof Error ? error.message : 'UNKNOWN_ERROR'
       };
     }
@@ -328,26 +331,26 @@ export class TodoistAIService {
       ]);
 
       const context = `
-**Contesto Todoist Attuale:**
+**Current Todoist Context:**
 
-**Progetti (${projects.length}):**
-${projects.slice(0, 5).map(p => `- ${p.name} (${p.is_favorite ? '⭐ ' : ''}${p.comment_count} commenti)`).join('\n')}
-${projects.length > 5 ? `... e altri ${projects.length - 5} progetti` : ''}
+**Projects (${projects.length}):**
+${projects.slice(0, 5).map(p => `- ${p.name} (${p.is_favorite ? '⭐ ' : ''}${p.comment_count} comments)`).join('\n')}
+${projects.length > 5 ? `... and ${projects.length - 5} more projects` : ''}
 
-**Riassunto Task:**
-- Totali: ${taskSummary.total}
-- In scadenza oggi: ${taskSummary.due_today}
-- In ritardo: ${taskSummary.overdue}
-- Alta priorità: ${taskSummary.high_priority}
+**Task Summary:**
+- Total: ${taskSummary.total}
+- Due today: ${taskSummary.due_today}
+- Overdue: ${taskSummary.overdue}
+- High priority: ${taskSummary.high_priority}
 
-**Task Urgenti (${recentTasks.length}):**
-${recentTasks.slice(0, 3).map(t => `- ${t.content} ${t.priority > 2 ? '🔥' : ''} ${t.due ? `(scade: ${t.due.date})` : ''}`).join('\n')}
-${recentTasks.length > 3 ? `... e altre ${recentTasks.length - 3} task urgenti` : ''}
+**Urgent Tasks (${recentTasks.length}):**
+${recentTasks.slice(0, 3).map(t => `- ${t.content} ${t.priority > 2 ? '🔥' : ''} ${t.due ? `(due: ${t.due.date})` : ''}`).join('\n')}
+${recentTasks.length > 3 ? `... and ${recentTasks.length - 3} more urgent tasks` : ''}
       `.trim();
 
       return context;
     } catch (error) {
-      return `Errore nel recupero del contesto Todoist: ${error instanceof Error ? error.message : 'Errore sconosciuto'}`;
+      return `Error retrieving Todoist context: ${error instanceof Error ? error.message : 'Unknown error'}`;
     }
   }
 }

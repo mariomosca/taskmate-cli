@@ -1,6 +1,7 @@
 import React from 'react';
 import { Box, Text, useStdout } from 'ink';
 import { TodoistProject } from '../types/todoist.js';
+import { UIMessageManager } from '../utils/UIMessages.js';
 
 interface ProjectTableProps {
   projects: TodoistProject[];
@@ -20,14 +21,14 @@ const ProjectTable = ({ projects }: ProjectTableProps) => {
   if (projects.length === 0) {
     return (
       <Box flexDirection="column" paddingX={1}>
-        <Text color="yellow">📁 Nessun progetto trovato.</Text>
+        <Text color="yellow">📁 No projects found.</Text>
       </Box>
     );
   }
 
   return (
     <Box flexDirection="column" paddingX={1} width="100%">
-      <Text color="cyan" bold>📁 Progetti trovati ({projects.length}):</Text>
+      <Text color="cyan" bold>📁 Projects found ({projects.length}):</Text>
       <Text></Text>
       
       {/* Header */}
@@ -36,16 +37,16 @@ const ProjectTable = ({ projects }: ProjectTableProps) => {
           <Text bold color="blue">ID</Text>
         </Box>
         <Box width={nameWidth}>
-          <Text bold color="blue">Nome</Text>
+          <Text bold color="blue">Name</Text>
         </Box>
         <Box width={colorWidth}>
-          <Text bold color="blue">Colore</Text>
+          <Text bold color="blue">Color</Text>
         </Box>
         <Box width={sharedWidth}>
-          <Text bold color="blue">Condiv.</Text>
+          <Text bold color="blue">Shared</Text>
         </Box>
         <Box width={favoriteWidth}>
-          <Text bold color="blue">Prefer.</Text>
+          <Text bold color="blue">Favorite</Text>
         </Box>
       </Box>
       
@@ -66,10 +67,10 @@ const ProjectTable = ({ projects }: ProjectTableProps) => {
             <Text color="magenta">{project.color}</Text>
           </Box>
           <Box width={sharedWidth}>
-            <Text color={project.is_shared ? "green" : "gray"}>{project.is_shared ? '👥 Sì' : 'No'}</Text>
+            <Text color={project.is_shared ? "green" : "gray"}>{project.is_shared ? '👥 Yes' : 'No'}</Text>
           </Box>
           <Box width={favoriteWidth}>
-            <Text color={project.is_favorite ? "yellow" : "gray"}>{project.is_favorite ? '⭐ Sì' : 'No'}</Text>
+            <Text color={project.is_favorite ? "yellow" : "gray"}>{project.is_favorite ? '⭐ Yes' : 'No'}</Text>
           </Box>
         </Box>
       ))}

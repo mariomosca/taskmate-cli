@@ -4,6 +4,8 @@ import 'dotenv/config';
 import React from 'react';
 import { render } from 'ink';
 import { App } from './App.js';
+import { parseCliArgs } from './utils/cli.js';
 
-// Render the app
-render(<App />);
+// Parse CLI arguments and render the app
+const cliArgs = parseCliArgs();
+render(<App cliArgs={cliArgs} />);

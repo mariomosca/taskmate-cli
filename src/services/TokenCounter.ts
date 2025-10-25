@@ -35,8 +35,8 @@ export class TokenCounter {
 
   private countClaudeTokens(text: string, model: string): TokenCountResult {
     try {
-      // Implementazione specifica per Claude
-      // Usa approssimazione basata su GPT-4 (simile tokenization)
+      // Claude-specific implementation
+      // Use GPT-4 based approximation (similar tokenization)
       const encoder = encoding_for_model('gpt-4');
       const tokens = encoder.encode(text).length;
       encoder.free();
@@ -53,10 +53,10 @@ export class TokenCounter {
   }
 
   private countGeminiTokens(text: string, model: string): TokenCountResult {
-    // Implementazione specifica per Gemini
-    // Usa stima migliorata basata su caratteristiche del modello
+    // Gemini-specific implementation
+    // Use improved estimation based on model characteristics
     const normalizedText = text.replace(/\s+/g, ' ').trim();
-    const tokens = Math.ceil(normalizedText.length / 2.5); // Gemini è più efficiente
+    const tokens = Math.ceil(normalizedText.length / 2.5); // Gemini is more efficient
     
     return {
       tokens,
@@ -77,7 +77,7 @@ export class TokenCounter {
   }
 
   /**
-   * Conta i token per un array di messaggi
+   * Count tokens for an array of messages
    */
   async countMessagesTokens(messages: Array<{content: string}>, model: string): Promise<TokenCountResult> {
     const totalText = messages.map(m => m.content).join('\n');
@@ -85,7 +85,7 @@ export class TokenCounter {
   }
 
   /**
-   * Verifica se il testo supera il limite di token per il modello
+   * Check if text exceeds token limit for the model
    */
   async exceedsLimit(text: string, model: string, limit: number): Promise<boolean> {
     const result = await this.countTokens(text, model);
@@ -93,14 +93,14 @@ export class TokenCounter {
   }
 
   /**
-   * Ottieni statistiche dettagliate sul conteggio
+   * Get detailed counting statistics
    */
   async getTokenStats(text: string, model: string): Promise<{
     result: TokenCountResult;
     characters: number;
     words: number;
     lines: number;
-    ratio: number; // token per carattere
+    ratio: number; // tokens per character
   }> {
     const result = await this.countTokens(text, model);
     const characters = text.length;

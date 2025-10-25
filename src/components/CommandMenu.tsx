@@ -18,19 +18,19 @@ interface CommandMenuProps {
 }
 
 const commands: Command[] = [
-  // General commands (più usati per primi)
-  { name: 'help', description: 'Mostra questo aiuto', category: 'general' },
-  { name: 'clear', description: 'Pulisci la chat', category: 'general' },
-  { name: 'status', description: 'Mostra stato sistema', category: 'general' },
-  { name: 'exit', description: 'Esci dall\'applicazione', category: 'general' },
+  // General commands
+  { name: 'help', description: 'Show this help', category: 'general' },
+  { name: 'clear', description: 'Clear the chat', category: 'general' },
+  { name: 'status', description: 'Show system status', category: 'general' },
+  { name: 'exit', description: 'Exit the application', category: 'general' },
   
-  // Session commands (gestione sessioni)
-  { name: 'sessions', description: 'Lista sessioni salvate', category: 'session' },
-  { name: 'new', description: 'Crea nuova sessione', category: 'session' },
-  { name: 'save', description: 'Salva sessione corrente', category: 'session' },
-  { name: 'load', description: 'Carica sessione esistente', category: 'session' },
-  { name: 'search', description: 'Cerca nei messaggi', category: 'session' },
-  { name: 'delete-session', description: 'Elimina sessione', category: 'session' }
+  // Session commands
+  { name: 'sessions', description: 'List saved sessions', category: 'session' },
+  { name: 'new', description: 'Create new session', category: 'session' },
+  { name: 'save', description: 'Save current session', category: 'session' },
+  { name: 'load', description: 'Load existing session', category: 'session' },
+  { name: 'search', description: 'Search in messages', category: 'session' },
+  { name: 'delete-session', description: 'Delete session', category: 'session' }
 ];
 
 export const CommandMenu = ({ isVisible, selectedIndex, filter, onTabComplete }: CommandMenuProps) => {
@@ -71,7 +71,7 @@ export const CommandMenu = ({ isVisible, selectedIndex, filter, onTabComplete }:
     <Box flexDirection="column" marginBottom={1}>
       <Box marginBottom={1}>
         <Text color="cyan" bold>
-          {figures.arrowRight} Comandi disponibili ({filteredCommands.length})
+          {figures.arrowRight} Available commands ({filteredCommands.length})
         </Text>
       </Box>
       
@@ -89,7 +89,7 @@ export const CommandMenu = ({ isVisible, selectedIndex, filter, onTabComplete }:
       
       <Box marginTop={1}>
         <Text color="gray" dimColor>
-          {figures.arrowUp}{figures.arrowDown} Naviga • Tab Autocompleta • Enter Seleziona • Esc Chiudi
+          {figures.arrowUp}{figures.arrowDown} Navigate • Tab Autocomplete • Enter Select • Esc Close
         </Text>
       </Box>
     </Box>

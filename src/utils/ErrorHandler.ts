@@ -13,7 +13,7 @@ import {
 } from '../types/errors.js';
 
 /**
- * Gestore centralizzato degli errori con supporto per retry logic e logging strutturato
+ * Centralized error handler with support for retry logic and structured logging
  */
 export class ErrorHandler {
   private static instance: ErrorHandler;
@@ -31,10 +31,10 @@ export class ErrorHandler {
   }
 
   /**
-   * Inizializza le configurazioni di retry per diversi tipi di errore
+   * Initialize retry configurations for different error types
    */
   private initializeRetryConfigs() {
-    // Configurazione per errori di rete
+    // Configuration for network errors
     this.retryConfigs.set(ErrorType.NETWORK_ERROR, {
       maxAttempts: 3,
       baseDelay: 1000,
@@ -43,7 +43,7 @@ export class ErrorHandler {
       retryableErrors: [ErrorType.NETWORK_ERROR]
     });
 
-    // Configurazione per errori API
+    // Configuration for API errors
     this.retryConfigs.set(ErrorType.API_ERROR, {
       maxAttempts: 2,
       baseDelay: 2000,
@@ -52,7 +52,7 @@ export class ErrorHandler {
       retryableErrors: [ErrorType.API_ERROR]
     });
 
-    // Configurazione per rate limiting
+    // Configuration for rate limiting
     this.retryConfigs.set(ErrorType.RATE_LIMIT_ERROR, {
       maxAttempts: 5,
       baseDelay: 5000,
@@ -89,7 +89,7 @@ export class ErrorHandler {
     // Converte errori generici in AppError
     if (error instanceof AppError) {
       appError = error;
-      // Aggiunge contesto aggiuntivo se fornito
+      // Add additional context if provided
       if (context) {
         appError = new AppError(
           appError.type,
@@ -106,7 +106,7 @@ export class ErrorHandler {
       appError = AppError.fromError(error, ErrorType.UNKNOWN_ERROR, context);
     }
 
-    // Log strutturato dell'errore
+    // Structured error logging
     this.logError(appError);
 
     return appError;
@@ -135,7 +135,7 @@ export class ErrorHandler {
         });
         lastError = appError;
 
-        // Determina se l'errore è retryable
+        // Determine if the error is retryable
         if (!AppError.isRetryableError(appError)) {
           throw appError;
         }

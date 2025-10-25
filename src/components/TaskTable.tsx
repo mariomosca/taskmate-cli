@@ -1,6 +1,7 @@
 import React from 'react';
 import { Box, Text, useStdout } from 'ink';
 import { TodoistTask } from '../types/todoist.js';
+import { UIMessageManager } from '../utils/UIMessages.js';
 
 interface TaskTableProps {
   tasks: TodoistTask[];
@@ -19,14 +20,14 @@ const TaskTable = ({ tasks }: TaskTableProps) => {
   if (tasks.length === 0) {
     return (
       <Box flexDirection="column" paddingX={1}>
-        <Text color="yellow">📋 Nessuna task trovata.</Text>
+        <Text color="yellow">📋 No tasks found.</Text>
       </Box>
     );
   }
 
   return (
     <Box flexDirection="column" paddingX={1} width="100%">
-      <Text color="cyan" bold>📋 Task trovate ({tasks.length}):</Text>
+      <Text color="cyan" bold>📋 Tasks found ({tasks.length}):</Text>
       <Text></Text>
       
       {/* Header */}
@@ -38,10 +39,10 @@ const TaskTable = ({ tasks }: TaskTableProps) => {
           <Text bold color="blue">Prio</Text>
         </Box>
         <Box width={contentWidth}>
-          <Text bold color="blue">Contenuto</Text>
+          <Text bold color="blue">Content</Text>
         </Box>
         <Box width={dateWidth}>
-          <Text bold color="blue">Scadenza</Text>
+          <Text bold color="blue">Due Date</Text>
         </Box>
       </Box>
       

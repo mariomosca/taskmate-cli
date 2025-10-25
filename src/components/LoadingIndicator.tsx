@@ -23,34 +23,34 @@ export const LoadingIndicator: React.FC<LoadingIndicatorProps> = ({
 
   const loadingMessages = {
     tasks: [
-      'Recuperando i tuoi task',
-      'Sincronizzando con il task manager',
-      'Organizzando le attività',
-      'Quasi pronto'
+      'Retrieving your tasks',
+      'Syncing with task manager',
+      'Organizing activities',
+      'Almost ready'
     ],
     projects: [
-      'Caricando i progetti',
-      'Sincronizzando i dati',
-      'Preparando la vista',
-      'Finalizzando'
+      'Loading projects',
+      'Syncing data',
+      'Preparing view',
+      'Finalizing'
     ],
     sync: [
-      'Sincronizzazione in corso',
-      'Aggiornando i dati locali',
-      'Verificando le modifiche',
-      'Completando la sync'
+      'Synchronization in progress',
+      'Updating local data',
+      'Verifying changes',
+      'Completing sync'
     ],
     api: [
-      'Connessione al server',
-      'Elaborando la richiesta',
-      'Ricevendo i dati',
-      'Processando la risposta'
+      'Connecting to server',
+      'Processing request',
+      'Receiving data',
+      'Processing response'
     ],
     general: [
-      'Elaborazione risposta',
-      'Elaborando',
-      'Quasi fatto',
-      'Completando'
+      'Processing response',
+      'Processing',
+      'Almost done',
+      'Completing'
     ]
   };
 
@@ -68,9 +68,9 @@ export const LoadingIndicator: React.FC<LoadingIndicatorProps> = ({
     return () => clearInterval(interval);
   }, [showTimer]);
 
-  // Cambio messaggio e fade effect
+  // Message change and fade effect
   useEffect(() => {
-    if (!fadeEffect || message) return; // Non cambiare messaggio se è fornito esplicitamente
+    if (!fadeEffect || message) return; // Don't change message if explicitly provided
     
     const interval = setInterval(() => {
       // Fade out

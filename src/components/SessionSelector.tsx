@@ -1,5 +1,6 @@
 import React from 'react';
 import { Box, Text, useInput } from 'ink';
+import { UIMessageManager } from '../utils/UIMessages.js';
 
 interface SessionInfo {
   id: string;
@@ -58,7 +59,7 @@ export const SessionSelector: React.FC<SessionSelectorProps> = ({
   if (loading) {
     return (
       <Box flexDirection="column" padding={1}>
-        <Text color="blue">🔍 Caricamento sessioni...</Text>
+        <Text color="blue">{UIMessageManager.getMessage('loadingSessions')}</Text>
       </Box>
     );
   }
@@ -66,8 +67,8 @@ export const SessionSelector: React.FC<SessionSelectorProps> = ({
   if (sessions.length === 0) {
     return (
       <Box flexDirection="column" padding={1}>
-        <Text color="yellow">⚠️  Nessuna sessione trovata</Text>
-        <Text color="gray">Premi ESC per tornare al menu principale</Text>
+        <Text color="yellow">{UIMessageManager.getMessage('noSessionsFound')}</Text>
+        <Text color="gray">Press ESC to return to main menu</Text>
       </Box>
     );
   }
@@ -91,15 +92,15 @@ export const SessionSelector: React.FC<SessionSelectorProps> = ({
   return (
     <Box flexDirection="column" padding={1}>
       <Text color="cyan" bold>
-        📋 Seleziona una sessione da riprendere
+        {UIMessageManager.getMessage('selectSession')}
       </Text>
       <Text color="gray">
-        Usa ↑/↓ per navigare, INVIO per selezionare, ESC per annullare
-        {(hasMore || currentPage > 0) ? ', ←/→ per cambiare pagina' : ''}
+        {UIMessageManager.getMessage('navigationHelp')}
+        {(hasMore || currentPage > 0) ? ', ←/→ to change page' : ''}
       </Text>
       {totalSessions > 0 && (
         <Text color="yellow">
-          Pagina {currentPage + 1} - Mostrando {sessions.length} di {totalSessions} sessioni
+          Page {currentPage + 1} - Showing {sessions.length} of {totalSessions} sessions
         </Text>
       )}
       <Text> </Text>
@@ -122,7 +123,7 @@ export const SessionSelector: React.FC<SessionSelectorProps> = ({
 
       <Text> </Text>
       <Text color="gray" dimColor>
-        Sessione selezionata: {sessions[selectedIndex]?.name || 'Nessuna'}
+        Selected session: {sessions[selectedIndex]?.name || 'None'}
       </Text>
       {sessions[selectedIndex] && (
         <Text color="blue" dimColor>
@@ -133,9 +134,9 @@ export const SessionSelector: React.FC<SessionSelectorProps> = ({
       {(hasMore || currentPage > 0) && (
         <Box marginTop={1}>
           <Text color="gray">
-            {currentPage > 0 ? '← Pagina precedente' : ''}
+            {currentPage > 0 ? '← Previous page' : ''}
             {(currentPage > 0 && hasMore) ? ' | ' : ''}
-            {hasMore ? 'Pagina successiva →' : ''}
+            {hasMore ? 'Next page →' : ''}
           </Text>
         </Box>
       )}

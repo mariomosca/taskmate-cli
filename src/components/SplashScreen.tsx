@@ -4,6 +4,7 @@ import BigText from 'ink-big-text';
 import Spinner from 'ink-spinner';
 import gradient from 'gradient-string';
 import figures from 'figures';
+import { UIMessageManager } from '../utils/UIMessages.js';
 
 // Global flag to track if the app has been initialized
 let hasBeenInitialized = false;
@@ -22,10 +23,10 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete, duration
   const [isFirstTime, setIsFirstTime] = useState(true);
 
   const steps = [
-    'Inizializzazione TaskMate CLI...',
-    'Caricamento configurazione...',
-    'Connessione ai servizi AI...',
-    'Pronto!'
+    'Initializing TaskMate CLI...',
+    UIMessageManager.getMessage('loadingConfiguration'),
+    'Connecting to AI services...',
+    'Ready!'
   ];
 
   // Check if this is the first time initialization
@@ -99,7 +100,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete, duration
       
       <Box marginBottom={1}>
         <Text color="gray">
-          v0.1.0 - Versione Minimal
+          v0.1.0 - {UIMessageManager.getMessage('version')} {UIMessageManager.getMessage('minimal')}
         </Text>
       </Box>
 

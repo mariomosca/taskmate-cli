@@ -15,8 +15,14 @@ import { DatabaseService } from './services/DatabaseService.js';
 import { CommandHandler, CommandContext, LoadingStep } from './services/CommandHandler.js';
 import { Message } from './types/index.js';
 import { logger } from './utils/logger.js';
+import { UIMessageManager } from './utils/UIMessages.js';
+import { CLIArgs } from './utils/cli.js';
 
-export const App: React.FC = () => {
+interface AppProps {
+  cliArgs: CLIArgs;
+}
+
+export const App: React.FC<AppProps> = ({ cliArgs }) => {
   logger.debug('App component initializing...');
   
   const { exit } = useApp();
@@ -96,19 +102,14 @@ export const App: React.FC = () => {
   const [contextDescription, setContextDescription] = useState<string | null>(null);
   const [costInfo, setCostInfo] = useState<string | null>(null);
 
-  // Check CLI arguments for session resume
+  // Check CLI arguments for session resume and initial message
   useEffect(() => {
-    const args = process.argv.slice(2);
-    const resumeIndex = args.indexOf('--resume');
-    
-    if (resumeIndex !== -1) {
-      const sessionId = args[resumeIndex + 1];
-      
-      if (sessionId && !sessionId.startsWith('--')) {
+    if (cliArgs.resume) {
+      if (cliArgs.sessionId) {
         // Resume specific session directly - hide splash and load session
         setShowSplash(false);
-        setPrioritySessionId(sessionId);
-        handleResumeSpecificSession(sessionId);
+        setPrioritySessionId(cliArgs.sessionId);
+        handleResumeSpecificSession(cliArgs.sessionId);
       } else {
         // Show session selector after splash completes
         setShowSessionSelector(true);
@@ -117,25 +118,25 @@ export const App: React.FC = () => {
       // Normal startup - create new session after splash completes
       // Don't hide splash, just wait for it to complete
     }
-  }, []);
+  }, [cliArgs]);
 
   const handleResumeSpecificSession = async (sessionId: string) => {
     try {
       setIsLoading(true);
-      setLoadingMessage('Caricamento sessione...');
+      setLoadingMessage(UIMessageManager.getMessage('loadingSession'));
       
       const result = await sessionManager.resumeSessionWithContext(sessionId);
       if (result) {
         setSessionContext(result.context);
         setMessages(result.session.messages || []);
         if (result.context) {
-          await addSystemMessage(`📝 Sessione ripresa con contesto: ${result.context.substring(0, 100)}...`);
+          await addSystemMessage(UIMessageManager.getMessage('sessionResumed') + `: ${result.context.substring(0, 100)}...`);
         }
       } else {
-        await addSystemMessage(`❌ Sessione ${sessionId} non trovata`);
+        await addSystemMessage(UIMessageManager.getMessage('sessionLoadError', { id: sessionId }));
       }
     } catch (error) {
-      await addSystemMessage(`❌ Errore nel caricamento della sessione: ${error}`);
+      await addSystemMessage(UIMessageManager.getMessage('sessionLoadingError', { error: String(error) }));
     } finally {
       setIsLoading(false);
     }
@@ -150,7 +151,7 @@ export const App: React.FC = () => {
       setHasMore(result.hasMore);
       setShowSessionSelector(true);
     } catch (error) {
-      await addSystemMessage(`❌ Errore nel caricamento delle sessioni: ${error}`);
+      await addSystemMessage(UIMessageManager.getMessage('sessionLoadingError', { error: String(error) }));
     }
   };
 
@@ -181,7 +182,7 @@ export const App: React.FC = () => {
     setShowSessionSelector(false);
     // Create new session instead
     sessionManager.createSession(
-      `Sessione ${new Date().toLocaleDateString()}`,
+      `Session ${new Date().toLocaleDateString()}`,
       'claude'
     );
   };
@@ -228,7 +229,7 @@ export const App: React.FC = () => {
       // Create new session when splash completes in normal mode
       const createNewSession = async () => {
         await sessionManager.createSession(
-          `Sessione ${new Date().toLocaleDateString()}`,
+          `Session ${new Date().toLocaleDateString()}`,
           'claude'
         );
       };
@@ -242,6 +243,24 @@ export const App: React.FC = () => {
       loadSessionsForSelection();
     }
   }, [splashCompleted, showSessionSelector]);
+
+  // Handle initial message from CLI args
+  useEffect(() => {
+    logger.debug('CLI message effect triggered:', {
+      hasMessage: !!cliArgs.message,
+      message: cliArgs.message,
+      splashCompleted,
+      showSessionSelector,
+      isLoading,
+      messagesLength: messages.length
+    });
+    
+    if (cliArgs.message && splashCompleted && !showSessionSelector && !isLoading && messages.length === 0) {
+      logger.info('Sending initial CLI message:', cliArgs.message);
+      // Send the initial message automatically
+      handleSubmit(cliArgs.message);
+    }
+  }, [cliArgs.message, splashCompleted, showSessionSelector, isLoading, messages.length]);
 
   // Update context info when messages change or when splash/session selector state changes
   useEffect(() => {
@@ -277,7 +296,7 @@ export const App: React.FC = () => {
       const llmMessages = [
         ...(sessionContext ? [{
           role: 'system' as const,
-          content: `Contesto della sessione precedente: ${sessionContext}`
+          content: UIMessageManager.getMessage('sessionContext', { context: sessionContext })
         }] : []),
         // Include all messages from current conversation
         ...messages.map(msg => ({

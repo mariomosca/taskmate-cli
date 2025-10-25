@@ -49,7 +49,7 @@ export class TestableSessionManager {
       }
     };
 
-    // Non salviamo immediatamente nel database, la sessione sarà salvata al primo messaggio
+    // Don't save immediately to database, session will be saved on first message
     this.currentSession = sessionData;
     return sessionData;
   }

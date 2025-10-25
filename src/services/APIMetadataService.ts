@@ -134,7 +134,7 @@ export class APIMetadataService {
       outputErrors.reduce((sum, err) => sum + Math.pow(err - averageOutputError, 2), 0) / outputErrors.length
     );
 
-    // Calcola aggiustamento raccomandato basato sui dati storici
+    // Calculate recommended adjustment based on historical data
     const inputRatios = modelData.map(m => m.actualInputTokens / m.estimatedInputTokens);
     const recommendedAdjustment = inputRatios.reduce((sum, ratio) => sum + ratio, 0) / inputRatios.length;
 

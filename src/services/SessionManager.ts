@@ -54,12 +54,12 @@ export class SessionManager {
   async createSession(name?: string, llmProvider: 'claude' | 'gemini' = 'claude'): Promise<Session> {
     const sessionData: Session = {
       id: this.generateSessionId(),
-      name: name || `Sessione ${new Date().toLocaleDateString()}`,
+      name: name || `Session ${new Date().toLocaleDateString()}`,
       messages: [],
       llmProvider,
       createdAt: new Date(),
       updatedAt: new Date(),
-      isTemporary: true, // Sessione temporanea, non ancora salvata nel database
+      isTemporary: true, // Temporary session, not yet saved to database
       metadata: {
         totalMessages: 0,
         totalTokens: 0,
@@ -67,7 +67,7 @@ export class SessionManager {
       }
     };
 
-    // Non salviamo immediatamente nel database, la sessione sarà salvata al primo messaggio
+    // Don't save immediately to database, session will be saved on first message
     this.currentSession = sessionData;
     return sessionData;
   }
@@ -91,13 +91,13 @@ export class SessionManager {
 
   async saveSession(session: Session, force: boolean = false): Promise<void> {
     try {
-      // Non salvare sessioni temporanee o con 0 messaggi, a meno che non sia forzato
+      // Don't save temporary sessions or sessions with 0 messages, unless forced
       if (!force && (session.isTemporary || session.messages.length === 0)) {
         logger.debug(`Skipping save for ${session.isTemporary ? 'temporary' : 'empty'} session ${session.id}`);
         return;
       }
 
-      // Se forziamo il salvataggio, rendiamo la sessione non temporanea
+      // If forcing save, make the session non-temporary
       if (force && session.isTemporary) {
         session.isTemporary = false;
       }
@@ -108,18 +108,18 @@ export class SessionManager {
         lastActivity: new Date()
       };
 
-      // Prima verifichiamo se la sessione esiste già
+      // First check if the session already exists
       try {
         const existingSession = await this.db.getSession(session.id);
         
-        // Aggiorniamo la sessione esistente
+        // Update existing session
         await this.db.updateSession(session.id, {
           name: session.name,
           metadata: updatedMetadata
         });
         logger.debug(`Updated existing session ${session.id} in database`);
       } catch (getError) {
-        // Creiamo la sessione se non esiste
+        // Create session if it doesn't exist
         await this.db.createSession(session);
         logger.debug(`Created new session ${session.id} in database`);
       }
@@ -173,12 +173,12 @@ export class SessionManager {
       );
     }
 
-    // Se la sessione è temporanea (non ancora salvata), la salviamo prima nel database
+    // If session is temporary (not yet saved), save it to database first
     if (this.currentSession.isTemporary) {
-      // Rimuoviamo il flag temporaneo e salviamo la sessione
+      // Remove temporary flag and save the session
       this.currentSession.isTemporary = false;
       const sessionToSave = { ...this.currentSession };
-      delete sessionToSave.isTemporary; // Rimuoviamo il flag prima di salvare
+      delete sessionToSave.isTemporary; // Remove flag before saving
       await this.db.createSession(sessionToSave);
     }
 
@@ -253,7 +253,7 @@ export class SessionManager {
   }> {
     const allSessions = await this.listSessions();
     
-    // Se c'è un ID prioritario, mettiamo quella sessione in cima
+    // If there's a priority ID, put that session at the top
     let orderedSessions = allSessions;
     if (prioritySessionId) {
       const prioritySession = allSessions.find(s => s.id === prioritySessionId);
@@ -295,38 +295,38 @@ export class SessionManager {
     }
 
     try {
-      // Usa il nuovo ContextManager per ottimizzare il contesto
+      // Use the new ContextManager to optimize context
       const result = await this.contextManager.prepareOptimizedContext(session.messages);
       
-      // Aggiorna la sessione con i messaggi ottimizzati se è stata fatta una summarizzazione
+      // Update session with optimized messages if summarization was done
       if (result.contextInfo.wasSummarized && session.messages.length > 0) {
         session.messages = result.optimizedMessages;
         await this.saveSession(session);
       }
 
-      // Costruisci il testo del contesto per il riassunto
+      // Build context text for summary
       const chatHistory = result.optimizedMessages
         .map(msg => {
-          const roleLabel = msg.role === 'user' ? 'Utente' : 
-                           msg.role === 'assistant' ? 'Assistente' : 
-                           msg.role === 'system' ? 'Sistema' : msg.role;
+          const roleLabel = msg.role === 'user' ? 'User' : 
+                           msg.role === 'assistant' ? 'Assistant' : 
+                           msg.role === 'system' ? 'System' : msg.role;
           return `${roleLabel}: ${msg.content}`;
         })
         .join('\n\n');
 
       return chatHistory;
     } catch (error) {
-      logger.error('Errore durante la preparazione del contesto:', error);
-      // Fallback: restituisci gli ultimi messaggi
+      logger.error('Error during context preparation:', error);
+      // Fallback: return last messages
       const lastMessages = session.messages.slice(-5)
         .map(msg => {
-          const roleLabel = msg.role === 'user' ? 'Utente' : 
-                           msg.role === 'assistant' ? 'Assistente' : 
-                           msg.role === 'system' ? 'Sistema' : msg.role;
+          const roleLabel = msg.role === 'user' ? 'User' : 
+                           msg.role === 'assistant' ? 'Assistant' : 
+                           msg.role === 'system' ? 'System' : msg.role;
           return `${roleLabel}: ${msg.content}`;
         })
         .join('\n\n');
-      return `Contesto degli ultimi messaggi:\n\n${lastMessages}`;
+      return `Context of last messages:\n\n${lastMessages}`;
     }
   }
 
@@ -341,7 +341,7 @@ export class SessionManager {
     
     return {
       session,
-      context: context || 'Sessione ripresa senza contesto precedente.'
+      context: context || 'Session resumed without previous context.'
     };
   }
 

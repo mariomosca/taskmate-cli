@@ -11,6 +11,7 @@ import { TokenCounter } from './TokenCounter.js';
 import { logger } from '../utils/logger.js';
 import { errorHandler } from '../utils/ErrorHandler.js';
 import { ErrorType } from '../types/errors.js';
+import { LanguageDetector, SupportedLanguage } from '../utils/LanguageDetector.js';
 
 export interface LLMMessage {
   role: 'user' | 'assistant' | 'system';
@@ -183,8 +184,9 @@ export class LLMService {
   }
 
   async summarizeContext(chatHistory: string): Promise<string> {
-    // Usa il template centralizzato per il riassunto
-    const prompt = PromptProcessor.process(SUMMARIZE_CONTEXT, { chatHistory });
+    // Detect user language and use appropriate multilingual template
+    const languageDetection = await LanguageDetector.detectLanguage(chatHistory);
+    const prompt = PromptProcessor.processMultilingual('SUMMARIZE_CONTEXT', { chatHistory }, languageDetection.language);
     
     const messages: LLMMessage[] = [
       {
@@ -200,7 +202,7 @@ export class LLMService {
   private async chatWithClaude(messages: LLMMessage[]): Promise<LLMResponse> {
     if (!this.anthropic) {
       throw errorHandler.createAuthenticationError(
-        'Chiave API Claude non configurata',
+        'Claude API key not configured',
         {
           operation: 'chatWithClaude',
           component: 'LLMService',
@@ -209,7 +211,7 @@ export class LLMService {
       );
     }
 
-    // Separa i messaggi di sistema dagli altri
+    // Separate system messages from others
     const systemMessages = messages.filter(m => m.role === 'system');
     const conversationMessages = messages.filter(m => m.role !== 'system');
 
@@ -253,7 +255,7 @@ export class LLMService {
           }
         }
 
-        // Debug logging per vedere la risposta completa di Claude
+        // Debug logging to see the complete Claude response
         logger.debug('Claude API Streaming Response', {
           fullContent,
           contentLength: fullContent.length,
@@ -285,7 +287,7 @@ export class LLMService {
 
         throw errorHandler.createLLMError(
             ErrorType.LLM_ERROR,
-            'Risposta non valida da Claude',
+            'Invalid response from Claude',
             {
               operation: 'chatWithClaude',
               component: 'LLMService',
@@ -337,7 +339,7 @@ export class LLMService {
 
   private async chatWithClaudeTools(messages: LLMMessage[]): Promise<LLMResponse> {
     if (!this.anthropic || !this.todoistAIService) {
-      throw errorHandler.createConfigError('Claude o TodoistAIService non configurato');
+      throw errorHandler.createConfigError('Claude or TodoistAIService not configured');
     }
 
     // Get current model configuration
@@ -354,19 +356,19 @@ export class LLMService {
       messages = optimized.optimizedMessages;
     }
 
-    // Separa i messaggi di sistema dagli altri
+    // Separate system messages from others
     const systemMessages = messages.filter(m => m.role === 'system');
     const conversationMessages = messages.filter(m => m.role !== 'system');
 
-    // Aggiungi contesto Todoist al system prompt
+    // Add Todoist context to system prompt
     const todoistContext = await this.todoistAIService.getTodoistContext();
     const enhancedSystemContent = [
       ...systemMessages.map(m => m.content),
-      `\n**CONTESTO TODOIST:**\n${todoistContext}`,
-      `\n**STRUMENTI DISPONIBILI:**\nHai accesso a strumenti per gestire task e progetti in Todoist. Usa questi strumenti quando l'utente vuole creare, modificare, completare o cercare task/progetti.`
+      `\n**TODOIST CONTEXT:**\n${todoistContext}`,
+      `\n**AVAILABLE TOOLS:**\nYou have access to tools for managing tasks and projects in Todoist. Use these tools when the user wants to create, modify, complete or search for tasks/projects.`
     ].join('\n\n');
 
-    // Prepara i tools per Claude
+    // Prepare tools for Claude
     const availableTools = this.todoistAIService.getAvailableTools();
     const claudeTools = availableTools.map(tool => ({
       name: tool.name,
@@ -441,7 +443,7 @@ export class LLMService {
         usage: { input_tokens: inputTokens, output_tokens: outputTokens }
       };
 
-      // Debug logging per la risposta iniziale di Claude con tools
+      // Debug logging for initial Claude response with tools
       logger.debug('Initial Claude response with tools', {
         fullResponse: processedResponse,
         contentArray: processedResponse.content
@@ -473,7 +475,7 @@ export class LLMService {
             toolResults.push({
               toolCallId: content.id,
               result: null,
-              error: error instanceof Error ? error.message : 'Errore sconosciuto'
+              error: error instanceof Error ? error.message : 'Unknown error'
             });
           }
         }
@@ -483,9 +485,9 @@ export class LLMService {
       if (hasToolCalls && toolResults.length > 0) {
         const toolResultsContent = toolResults.map(tr => {
           if (tr.error) {
-            return `❌ Errore nell'esecuzione del tool: ${tr.error}`;
+            return `❌ Error executing tool: ${tr.error}`;
           }
-          return `✅ Tool eseguito con successo:\n${JSON.stringify(tr.result, null, 2)}`;
+          return `✅ Tool executed successfully:\n${JSON.stringify(tr.result, null, 2)}`;
         }).join('\n\n');
 
         const followUpMessages = [
@@ -495,11 +497,11 @@ export class LLMService {
            })),
            {
              role: 'assistant' as const,
-             content: processedResponse.content.find((c: any) => c.type === 'text')?.text || 'Sto eseguendo le operazioni richieste...'
+             content: processedResponse.content.find((c: any) => c.type === 'text')?.text || 'Executing requested operations...'
            },
            {
              role: 'user' as const,
-             content: `I tool sono stati eseguiti con i seguenti risultati:\n\n${toolResultsContent}\n\nPer favore, elabora questi risultati e fornisci una risposta user-friendly in italiano, riassumendo le informazioni in modo chiaro e utile.`
+             content: `The tools have been executed with the following results:\n\n${toolResultsContent}\n\nPlease process these results and provide a user-friendly response, summarizing the information clearly and usefully.`
            }
          ];
 
@@ -527,14 +529,14 @@ export class LLMService {
           }
         }
 
-        // Debug logging per la risposta di follow-up
+        // Debug logging for follow-up response
         logger.debug('Claude follow-up response', {
           followUpContent,
           followUpInputTokens,
           followUpOutputTokens
         });
 
-        const finalContent = followUpContent || 'Operazione completata.';
+        const finalContent = followUpContent || 'Operation completed.';
         logger.debug('Final content from follow-up', {
           finalContent,
           finalContentType: typeof finalContent
@@ -594,10 +596,10 @@ export class LLMService {
         toolCalls
       };
     } catch (error) {
-      logger.error('Errore chiamata Claude con tools:', error);
+      logger.error('Error calling Claude with tools:', error);
       throw errorHandler.createLLMError(
         ErrorType.LLM_ERROR, 
-        `Errore Claude: ${error instanceof Error ? error.message : 'Errore sconosciuto'}`,
+        `Claude error: ${error instanceof Error ? error.message : 'Unknown error'}`,
         { component: 'LLMService', operation: 'chatWithClaudeTools' },
         true
       );
@@ -608,7 +610,7 @@ export class LLMService {
     const googleApiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
     if (!googleApiKey) {
       throw errorHandler.createAuthenticationError(
-        'Chiave API Gemini non configurata',
+        'Gemini API key not configured',
         {
           operation: 'chatWithGemini',
           component: 'LLMService',
@@ -633,7 +635,7 @@ export class LLMService {
 
     return await errorHandler.executeWithRetry(
       async () => {
-        // Converti i messaggi nel formato Gemini
+        // Convert messages to Gemini format
         const contents = messages
           .filter(m => m.role !== 'system')
           .map(msg => ({
@@ -679,7 +681,7 @@ export class LLMService {
         if (!candidate?.content?.parts?.[0]?.text) {
           throw errorHandler.createLLMError(
             ErrorType.LLM_ERROR,
-            'Risposta non valida da Gemini',
+            'Invalid response from Gemini',
             {
               operation: 'chatWithGemini',
               component: 'LLMService',
@@ -721,9 +723,9 @@ export class LLMService {
   }
 
   private async chatWithGeminiTools(messages: LLMMessage[]): Promise<LLMResponse> {
-    // Per ora, Gemini con tools non è implementato completamente
-    // Fallback al metodo normale
-    logger.warn('Function calling con Gemini non ancora implementato, uso metodo normale');
+    // For now, Gemini with tools is not fully implemented
+    // Fallback to normal method
+    logger.warn('Function calling with Gemini not yet implemented, using normal method');
     return this.chatWithGemini(messages);
   }
 

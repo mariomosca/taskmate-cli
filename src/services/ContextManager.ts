@@ -49,19 +49,19 @@ export class ContextManager {
   }
 
   /**
-   * Stima approssimativa dei token per un testo
-   * Usa una regola empirica: ~4 caratteri per token per l'inglese, ~3 per l'italiano
+   * Approximate token estimation for text
+   * Uses empirical rule: ~4 characters per token for English, ~3 for Italian
    */
   private estimateTokens(text: string): number {
-    // Rimuovi spazi multipli e normalizza
+    // Remove multiple spaces and normalize
     const normalizedText = text.replace(/\s+/g, ' ').trim();
     
-    // Stima conservativa: 3 caratteri per token (per essere sicuri)
+    // Conservative estimate: 3 characters per token (to be safe)
     return Math.ceil(normalizedText.length / 3);
   }
 
   /**
-   * Calcola i token totali per una lista di messaggi
+   * Calculate total tokens for a list of messages
    */
   public calculateTotalTokens(messages: Message[]): number {
     return messages.reduce((total, message) => {
@@ -70,7 +70,7 @@ export class ContextManager {
   }
 
   /**
-   * Verifica se il contesto è vicino al limite
+   * Check if context is close to the limit
    */
   /**
    * Calculate context status and token usage
@@ -120,7 +120,7 @@ export class ContextManager {
   }
 
   /**
-   * Riassume automaticamente il contesto quando necessario
+   * Automatically summarize context when necessary
    */
   public async summarizeContextIfNeeded(messages: Message[]): Promise<{
     messages: Message[];
@@ -136,46 +136,46 @@ export class ContextManager {
       };
     }
 
-    // Mantieni sempre gli ultimi 3 messaggi per continuità
+    // Always keep the last 3 messages for continuity
     const recentMessages = messages.slice(-3);
     const messagesToSummarize = messages.slice(0, -3);
 
     try {
 
       if (messagesToSummarize.length === 0) {
-        // Se abbiamo solo 3 messaggi o meno, non possiamo riassumere
+        // If we have only 3 messages or less, we cannot summarize
         return {
           messages,
           wasSummarized: false
         };
       }
 
-      // Prepara il contenuto per il riassunto
+      // Prepare content for summary
       const chatHistory = messagesToSummarize
         .map(msg => `${msg.role}: ${msg.content}`)
         .join('\n\n');
 
-      // Usa il template per il riassunto
+      // Use template for summary
       const summaryPrompt = PromptProcessor.process(
         SUMMARIZE_SESSION,
         { chatHistory }
       );
 
-      // Genera il riassunto
+      // Generate summary
       const summary = await this.llmService.summarizeContext(chatHistory);
 
-      // Crea un nuovo messaggio di sistema con il riassunto
+      // Create a new system message with the summary
       const summaryMessage: Message = {
         id: `summary-${Date.now()}`,
         role: 'system',
-        content: `[RIASSUNTO CONVERSAZIONE PRECEDENTE]\n${summary}`,
+        content: `[PREVIOUS CONVERSATION SUMMARY]\n${summary}`,
         timestamp: new Date(),
         metadata: {
           sessionId: messages[0]?.metadata?.sessionId || 'default'
         }
       };
 
-      // Ritorna il riassunto + messaggi recenti
+      // Return summary + recent messages
       const newMessages = [summaryMessage, ...recentMessages];
 
       return {
@@ -197,9 +197,9 @@ export class ContextManager {
         }
       );
       
-      logger.error('Errore durante il riassunto del contesto:', handledError);
+      logger.error('Error during context summarization:', handledError);
       
-      // Fallback: mantieni solo gli ultimi 5 messaggi
+      // Fallback: keep only the last 5 messages
       return {
         messages: messages.slice(-5),
         wasSummarized: false
@@ -208,7 +208,7 @@ export class ContextManager {
   }
 
   /**
-   * Prepara il contesto ottimizzato per l'LLM
+   * Prepare optimized context for LLM
    */
   public async prepareOptimizedContext(messages: Message[]): Promise<{
     optimizedMessages: Message[];
@@ -222,7 +222,7 @@ export class ContextManager {
     const originalTokens = this.calculateTotalTokens(messages);
     const originalStatus = this.getContextStatus(messages);
 
-    // Prova a riassumere se necessario
+    // Try to summarize if necessary
     const result = await this.summarizeContextIfNeeded(messages);
     
     const finalTokens = this.calculateTotalTokens(result.messages);
@@ -240,7 +240,7 @@ export class ContextManager {
   }
 
   /**
-   * Prepara il contesto arricchito con informazioni Todoist per l'AI
+   * Prepare enhanced context with Todoist information for AI
    */
   public async prepareEnhancedContext(messages: Message[]): Promise<{
     enhancedMessages: Message[];
@@ -252,28 +252,28 @@ export class ContextManager {
       hasTodoistContext: boolean;
     };
   }> {
-    // Prima ottimizza il contesto normale
+    // First optimize normal context
     const optimizedResult = await this.prepareOptimizedContext(messages);
     let enhancedMessages = [...optimizedResult.optimizedMessages];
     let hasTodoistContext = false;
 
-    // Aggiungi contesto Todoist se disponibile
+    // Add Todoist context if available
     if (this.todoistAIService) {
       try {
         const todoistContext = await this.todoistAIService.getTodoistContext();
         
-        // Crea un messaggio di sistema con il contesto Todoist
+        // Create a system message with Todoist context
          const todoistContextMessage: Message = {
            id: `todoist-context-${Date.now()}`,
            role: 'system',
-           content: `[CONTESTO TODOIST ATTUALE]\n${todoistContext}\n\n[STRUMENTI DISPONIBILI]\nHai accesso a strumenti per gestire task e progetti in Todoist. Usa questi strumenti quando l'utente vuole creare, modificare, completare o cercare task/progetti.`,
+           content: `[CURRENT TODOIST CONTEXT]\n${todoistContext}\n\n[AVAILABLE TOOLS]\nYou have access to tools for managing tasks and projects in Todoist. Use these tools when the user wants to create, modify, complete or search for tasks/projects.`,
            timestamp: new Date(),
            metadata: {
              sessionId: messages[0]?.metadata?.sessionId || 'default'
            }
          };
 
-        // Inserisci il contesto Todoist all'inizio (dopo eventuali riassunti)
+        // Insert Todoist context at the beginning (after any summaries)
         const systemMessages = enhancedMessages.filter(m => m.role === 'system');
         const otherMessages = enhancedMessages.filter(m => m.role !== 'system');
         
@@ -285,7 +285,7 @@ export class ContextManager {
 
         hasTodoistContext = true;
       } catch (error) {
-        logger.warn('Errore nel recupero del contesto Todoist:', error);
+        logger.warn('Error retrieving Todoist context:', error);
       }
     }
 
@@ -305,7 +305,7 @@ export class ContextManager {
   }
 
   /**
-   * Formatta le informazioni del contesto per la UI
+   * Format context information for UI
    */
   public formatContextInfo(messages: Message[]): string {
     const status = this.getContextStatus(messages);
@@ -320,25 +320,25 @@ export class ContextManager {
   }
 
   /**
-   * Ottiene una descrizione testuale dello stato del contesto
+   * Get textual description of context status
    */
   public getContextDescription(messages: Message[]): string {
     const status = this.getContextStatus(messages);
     
     switch (status.status) {
       case 'safe':
-        return 'Contesto normale';
+        return 'Normal context';
       case 'warning':
-        return 'Contesto in crescita';
+        return 'Growing context';
       case 'critical':
-        return 'Contesto critico - riassunto automatico attivo';
+        return 'Critical context - automatic summary active';
       default:
-        return 'Stato sconosciuto';
+        return 'Unknown status';
     }
   }
 
   /**
-   * Restituisce il ModelManager per accedere alla configurazione del modello
+   * Returns the ModelManager to access model configuration
    */
   public getModelManager(): ModelManager {
     return this.modelManager;

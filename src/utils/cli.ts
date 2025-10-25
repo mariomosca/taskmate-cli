@@ -1,11 +1,13 @@
 import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
+import { UIMessageManager } from './UIMessages.js';
 
 export interface CLIArgs {
   resume?: boolean;
   sessionId?: string;
   debug?: boolean;
   provider?: string;
+  message?: string;
 }
 
 export function parseCliArgs(): CLIArgs {
@@ -13,48 +15,55 @@ export function parseCliArgs(): CLIArgs {
     .option('resume', {
       alias: 'r',
       type: 'boolean',
-      description: 'Riprendi una sessione esistente',
+      description: UIMessageManager.getMessage('resumeDescription'),
       default: false
     })
     .option('session-id', {
       alias: 's',
       type: 'string',
-      description: 'ID della sessione da riprendere (usato con --resume)'
+      description: UIMessageManager.getMessage('sessionIdDescription')
     })
     .option('debug', {
       alias: 'd',
       type: 'boolean',
-      description: 'Abilita modalità debug',
+      description: 'Enable debug mode',
       default: false
     })
     .option('provider', {
       alias: 'p',
       type: 'string',
       choices: ['claude', 'gemini'],
-      description: 'Provider LLM da utilizzare'
+      description: 'LLM provider to use'
+    })
+    .option('message', {
+      alias: 'm',
+      type: 'string',
+      description: 'Send an initial message to start the conversation'
     })
     .help()
     .alias('help', 'h')
-    .example('$0', 'Avvia una nuova sessione chat')
-    .example('$0 --resume', 'Mostra le sessioni disponibili per la ripresa')
-    .example('$0 --resume --session-id abc123', 'Riprendi la sessione specifica')
-    .example('$0 --provider claude', 'Usa Claude come provider LLM')
+    .example('$0', UIMessageManager.getMessage('startExample'))
+    .example('$0 --resume', 'Show available sessions for resuming')
+    .example('$0 --resume --session-id abc123', UIMessageManager.getMessage('resumeExample'))
+    .example('$0 --provider claude', 'Use Claude as LLM provider')
+    .example('$0 --message "Help me organize my tasks"', 'Start with an initial message')
     .parseSync();
 
   return {
     resume: argv.resume,
     sessionId: argv['session-id'],
     debug: argv.debug,
-    provider: argv.provider
+    provider: argv.provider,
+    message: argv.message
   };
 }
 
 export function validateCliArgs(args: CLIArgs): { valid: boolean; error?: string } {
-  // Se è specificato un session-id, deve essere usato con --resume
+  // If session-id is specified, it must be used with --resume
   if (args.sessionId && !args.resume) {
     return {
       valid: false,
-      error: 'L\'opzione --session-id può essere usata solo con --resume'
+      error: 'The --session-id option can only be used with --resume'
     };
   }
 

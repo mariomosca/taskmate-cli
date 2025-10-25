@@ -1307,5 +1307,27 @@
     "totalCost": 0.00015000000000000001,
     "operation": "chat",
     "sessionId": "session_1761381553063_9i9u52l1f"
+  },
+  {
+    "timestamp": "2025-10-25T11:27:04.533Z",
+    "model": "claude-sonnet-4-5-20250929",
+    "inputTokens": 2059,
+    "outputTokens": 351,
+    "inputCost": 0.006177,
+    "outputCost": 0.005265,
+    "totalCost": 0.011442,
+    "operation": "chat",
+    "sessionId": "session_1761391611899_16ph844sw"
+  },
+  {
+    "timestamp": "2025-10-25T11:27:34.801Z",
+    "model": "claude-sonnet-4-5-20250929",
+    "inputTokens": 2044,
+    "outputTokens": 210,
+    "inputCost": 0.006132,
+    "outputCost": 0.0031499999999999996,
+    "totalCost": 0.009282,
+    "operation": "chat",
+    "sessionId": "session_1761391644646_8h6rbch4w"
   }
 ]

@@ -3058,5 +3058,29 @@
     "inputText": "Test input",
     "outputText": "Test response",
     "operation": "completion"
+  },
+  {
+    "timestamp": "2025-10-25T11:27:04.536Z",
+    "model": "claude-sonnet-4-5-20250929",
+    "provider": "claude",
+    "actualInputTokens": 2059,
+    "actualOutputTokens": 351,
+    "estimatedInputTokens": 18,
+    "estimatedOutputTokens": 64000,
+    "inputText": "Bonjour, pouvez-vous m'aider à organiser mes tâches?",
+    "outputText": "Bonjour! Bien sûr, je serais ravi de vous aider à organiser vos tâches! \n\nJe vois que vous avez actuellement **62 tâches** dans votre Todoist, dont:\n- **3 tâches** à faire aujourd'hui\n- **22 tâches** en retard\n- **46 tâches** à haute priorité\n\nVoici quelques domaines où je peux vous aider:\n\n1. **Visualiser vos tâches** - Je peux vous montrer vos tâches par projet, par date d'échéance, ou par priorité\n2. **Gérer les tâches en retard** - Nous pourrions revoir vos 22 tâches en retard et les réorgan",
+    "operation": "chat"
+  },
+  {
+    "timestamp": "2025-10-25T11:27:34.804Z",
+    "model": "claude-sonnet-4-5-20250929",
+    "provider": "claude",
+    "actualInputTokens": 2044,
+    "actualOutputTokens": 210,
+    "estimatedInputTokens": 8,
+    "estimatedOutputTokens": 64000,
+    "inputText": "Hello, can you help me?",
+    "outputText": "Hello! Yes, I'd be happy to help you! \n\nI can assist you with managing your Todoist tasks and projects. Looking at your current setup, I can see you have:\n\n- **62 total tasks** across 9 projects\n- **3 tasks due today**\n- **22 overdue tasks**\n- **46 high priority tasks**\n\nSome of your projects include:\n- 💼 Corporate Track (CTO + RAL)\n- 🚀 Personal Revenue (SaaS + Brand)\n- 🏠 Personal Foundation\n- 🌱 Growth & Learning\n- And more...\n\nI can help you:\n- Create, update, or complete tasks\n- Search for",
+    "operation": "chat"
   }
 ]

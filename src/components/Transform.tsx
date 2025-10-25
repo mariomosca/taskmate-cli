@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Text } from 'ink';
 import figures from 'figures';
+import { UIMessageManager } from '../utils/UIMessages.js';
 
 interface TransformProps {
   type: 'projects' | 'tasks' | 'ai' | 'search' | 'session';
@@ -36,37 +37,37 @@ const Transform: React.FC<TransformProps> = ({ type, count, message, isActive })
       case 'projects':
         return {
           icon: '📁',
-          text: `Elaborazione ${count || 0} progetti`,
+          text: `Processing ${count || 0} projects`,
           color: 'blue'
         };
       case 'tasks':
         return {
           icon: '✅',
-          text: `Analisi ${count || 0} task`,
+          text: `Analyzing ${count || 0} tasks`,
           color: 'green'
         };
       case 'ai':
         return {
           icon: '🤖',
-          text: message || 'Elaborazione AI in corso',
+          text: message || 'AI processing in progress',
           color: 'magenta'
         };
       case 'search':
         return {
           icon: '🔍',
-          text: `Ricerca in ${count || 0} sessioni`,
+          text: `Searching in ${count || 0} sessions`,
           color: 'yellow'
         };
       case 'session':
         return {
           icon: '💾',
-          text: message || 'Gestione sessione',
+          text: message || 'Session management',
           color: 'cyan'
         };
       default:
         return {
           icon: '⚡',
-          text: 'Elaborazione',
+          text: 'Processing',
           color: 'white'
         };
     }

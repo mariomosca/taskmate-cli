@@ -41,7 +41,7 @@ export class EnhancedContextManager {
     const currentModel = model || this.modelManager.getCurrentModel();
     const config = this.modelManager.getModelConfig(currentModel);
     
-    // Conta i token con il metodo più preciso disponibile
+    // Count tokens with the most precise method available
     const tokenResult = await this.tokenCounter.countMessagesTokens(messages, currentModel);
     
     const utilizationPercentage = tokenResult.tokens / config.contextWindow;
@@ -63,7 +63,7 @@ export class EnhancedContextManager {
       recommendedAction = 'No action needed';
     }
 
-    // Stima del costo basata sui token attuali
+    // Cost estimate based on current tokens
     const costEstimate = this.modelManager.calculateCost(tokenResult.tokens, 0, currentModel);
 
     return {
@@ -100,7 +100,7 @@ export class EnhancedContextManager {
     let optimizedMessages = [...systemMessages];
     let currentTokenCount = await this.tokenCounter.countMessagesTokens(systemMessages, currentModel);
     
-    // Aggiungi messaggi dal più recente fino a raggiungere il limite
+    // Add messages from most recent until reaching the limit
     for (let i = conversationMessages.length - 1; i >= 0; i--) {
       const messageTokens = await this.tokenCounter.countTokens(conversationMessages[i].content, currentModel);
       
@@ -148,7 +148,7 @@ export class EnhancedContextManager {
     const messagesToSummarize = conversationMessages.slice(0, -keepRecentCount);
     const recentMessages = conversationMessages.slice(-keepRecentCount);
     
-    // Crea un riassunto dei messaggi più vecchi
+    // Create a summary of older messages
     const summaryContent = this.createConversationSummary(messagesToSummarize);
     const summaryMessage: LLMMessage = {
       role: 'system',
@@ -235,7 +235,7 @@ export class EnhancedContextManager {
     const tokenResult = await this.tokenCounter.countMessagesTokens(messages, currentModel);
     const config = this.modelManager.getModelConfig(currentModel);
     
-    // Stima token di output basata sulla lunghezza dell'input (tipicamente 10-30% dell'input)
+    // Estimate output tokens based on input length (typically 10-30% of input)
     const estimatedOutputTokens = Math.min(
       Math.floor(tokenResult.tokens * 0.2),
       config.maxOutputTokens

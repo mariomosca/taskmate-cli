@@ -18,7 +18,7 @@ interface InputAreaProps {
 export const InputArea: React.FC<InputAreaProps> = ({
   onSubmit,
   onSlashCommand,
-  placeholder = 'Scrivi un messaggio o usa / per i comandi...',
+  placeholder = '',
   disabled = false
 }) => {
   const [input, setInput] = useState('');
@@ -27,19 +27,19 @@ export const InputArea: React.FC<InputAreaProps> = ({
 
   // Available commands (should match CommandMenu.tsx)
   const commands = [
-    // General commands (più usati per primi)
-    { name: 'help', description: 'Mostra questo aiuto', category: 'general' },
-    { name: 'clear', description: 'Pulisci la chat', category: 'general' },
-    { name: 'status', description: 'Mostra stato sistema', category: 'general' },
-    { name: 'exit', description: 'Esci dall\'applicazione', category: 'general' },
+    // General commands (most used first)
+    { name: 'help', description: 'Show this help', category: 'general' },
+    { name: 'clear', description: 'Clear the chat', category: 'general' },
+    { name: 'status', description: 'Show system status', category: 'general' },
+    { name: 'exit', description: 'Exit the application', category: 'general' },
     
-    // Session commands (gestione sessioni)
-    { name: 'sessions', description: 'Lista sessioni salvate', category: 'session' },
-    { name: 'new', description: 'Crea nuova sessione', category: 'session' },
-    { name: 'save', description: 'Salva sessione corrente', category: 'session' },
-    { name: 'load', description: 'Carica sessione esistente', category: 'session' },
-    { name: 'search', description: 'Cerca nei messaggi', category: 'session' },
-    { name: 'delete-session', description: 'Elimina sessione', category: 'session' }
+    // Session commands (session management)
+    { name: 'sessions', description: 'List saved sessions', category: 'session' },
+    { name: 'new', description: 'Create new session', category: 'session' },
+    { name: 'save', description: 'Save current session', category: 'session' },
+    { name: 'load', description: 'Load existing session', category: 'session' },
+    { name: 'search', description: 'Search in messages', category: 'session' },
+    { name: 'delete-session', description: 'Delete session', category: 'session' }
   ];
 
   // Get the currently selected command for tab completion
@@ -170,7 +170,7 @@ export const InputArea: React.FC<InputAreaProps> = ({
           </Text>
           <TextInput
             value={input}
-            placeholder={disabled ? placeholder : 'Scrivi un messaggio o usa / per i comandi...'}
+            placeholder=""
             onChange={handleInputChange}
             onSubmit={handleInputSubmit}
             showCursor={!disabled}
@@ -179,7 +179,7 @@ export const InputArea: React.FC<InputAreaProps> = ({
         
         <Box marginTop={0}>
           <Text color="gray" dimColor>
-            {figures.info} Premi Enter per inviare, / per comandi, Tab per autocompletamento
+            {figures.info} Press Enter to send, / for commands, Tab for autocomplete
           </Text>
         </Box>
       </Box>

@@ -132,7 +132,7 @@ export class ModelManager {
     const config = this.getModelConfig(targetModel);
     const isCurrentModel = targetModel === this.currentModel;
     
-    // Stima costo per 1k caratteri (assumendo ~3 caratteri per token)
+    // Estimate cost per 1k characters (assuming ~3 characters per token)
     const estimatedCostPer1kChars = (config.costPer1kInputTokens * 1000) / 3;
 
     return {

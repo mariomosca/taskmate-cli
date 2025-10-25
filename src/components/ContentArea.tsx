@@ -41,7 +41,7 @@ export const ContentArea = ({
     const icon = isUser ? figures.arrowRight : '';
     const color = isUser ? 'cyan' : 'green';
     
-    // Log dettagliato per ogni messaggio renderizzato
+    // Detailed log for each rendered message
     logger.debug('Rendering message', {
       messageId: message.id,
       role: message.role,
@@ -65,7 +65,7 @@ export const ContentArea = ({
         
         <Box paddingLeft={isUser ? 3 : 0}>
           <Text color={isUser ? 'white' : 'green'}>
-            {message.content || '(messaggio vuoto)'}
+            {message.content || '(empty message)'}
           </Text>
         </Box>
         
@@ -123,10 +123,10 @@ export const ContentArea = ({
       {messages.length === 0 && !isLoading ? (
         <Box flexDirection="column" alignItems="center" justifyContent="center" flexGrow={1}>
           <Text color="gray" dimColor>
-            {figures.info} Nessun messaggio ancora
+            {figures.info} No messages yet
           </Text>
           <Text color="gray" dimColor>
-            Inizia una conversazione o usa / per i comandi
+            Start a conversation or use / for commands
           </Text>
         </Box>
       ) : (
