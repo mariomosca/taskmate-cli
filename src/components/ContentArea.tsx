@@ -4,6 +4,7 @@ import { Message } from '../types/index.js';
 import { LoadingStep } from '../services/CommandHandler.js';
 import { LoadingIndicator } from './LoadingIndicator.js';
 import { logger } from '../utils/logger.js';
+import { UIMessageManager } from '../utils/UIMessages.js';
 import figures from 'figures';
 
 interface ContentAreaProps {
@@ -18,7 +19,7 @@ interface ContentAreaProps {
 export const ContentArea = ({
   messages,
   isLoading = false,
-  loadingMessage = 'Elaborazione in corso...',
+  loadingMessage = UIMessageManager.getMessage('processing'),
   loadingSteps
 }: ContentAreaProps) => {
   // Log dettagliato ogni volta che il componente viene renderizzato

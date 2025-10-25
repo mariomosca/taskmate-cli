@@ -3094,5 +3094,17 @@
     "inputText": "Ciao, puoi aiutarmi?",
     "outputText": "Ciao! Certo, sono qui per aiutarti! 😊\n\nPosso aiutarti a gestire le tue attività e progetti su Todoist. Vedo che hai:\n- **62 task totali**\n- **3 task da fare oggi**\n- **22 task in ritardo**\n- **46 task ad alta priorità**\n\nCosa posso fare per te? Posso aiutarti a:\n- Creare, modificare o completare task\n- Organizzare i tuoi progetti\n- Cercare task specifici\n- Vedere i dettagli dei task urgenti o in scadenza\n- Qualsiasi altra cosa relativa alla gestione delle tue attività\n\nDimmi pure di cosa hai bi",
     "operation": "chat"
+  },
+  {
+    "timestamp": "2025-10-25T11:39:12.757Z",
+    "model": "claude-sonnet-4-5-20250929",
+    "provider": "claude",
+    "actualInputTokens": 2057,
+    "actualOutputTokens": 329,
+    "estimatedInputTokens": 17,
+    "estimatedOutputTokens": 64000,
+    "inputText": "Ciao, puoi aiutarmi a organizzare le mie attività?",
+    "outputText": "Ciao! Certo, sarò felice di aiutarti a organizzare le tue attività! \n\nVedo che hai già un sistema ben strutturato in Todoist con:\n- **62 attività totali**\n- **3 attività in scadenza oggi**\n- **22 attività scadute** che potrebbero aver bisogno di attenzione\n- **46 attività ad alta priorità**\n\nHai diversi progetti organizzati tra lavoro (Corporate Track), progetti personali (Personal Revenue), fondamenta personali (Personal Foundation) e crescita personale (Growth & Learning).\n\nCome posso aiutarti",
+    "operation": "chat"
   }
 ]

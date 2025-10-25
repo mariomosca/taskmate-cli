@@ -124,7 +124,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete, duration
       {isCompleted && showCompletionMessage && (
         <Box flexDirection="row" alignItems="center" marginTop={1}>
           <Text color="green">{figures.tick} </Text>
-          <Text color="green">Sistema pronto per l'uso!</Text>
+          <Text color="green">{UIMessageManager.getMessage('systemReady')}</Text>
         </Box>
       )}
     </Box>

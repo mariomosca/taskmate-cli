@@ -2,10 +2,10 @@
   {
     "model": "claude-sonnet-4-5-20250929",
     "provider": "claude",
-    "inputTokenRatio": 26.284305406041508,
-    "outputTokenRatio": 0.24091646634615388,
-    "sampleCount": 26,
-    "lastUpdated": "2025-10-25T11:33:38.029Z",
+    "inputTokenRatio": 29.792294094706637,
+    "outputTokenRatio": 0.2321840277777778,
+    "sampleCount": 27,
+    "lastUpdated": "2025-10-25T11:39:12.760Z",
     "confidence": 0.95
   },
   {

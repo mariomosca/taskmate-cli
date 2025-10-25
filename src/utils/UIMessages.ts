@@ -47,6 +47,8 @@ export interface UIMessages {
   // Loading states
   loadingConfiguration: string;
   loadingSession: string;
+  systemReady: string;
+  processing: string;
   
   // Error messages
   unknownError: string;
@@ -117,6 +119,8 @@ export const UI_MESSAGES: Record<SupportedLanguage, UIMessages> = {
     // Loading states
     loadingConfiguration: 'Loading configuration...',
     loadingSession: 'Loading session...',
+    systemReady: 'System ready for use!',
+    processing: 'Processing...',
     
     // Error messages
     unknownError: 'Unknown error',
@@ -186,6 +190,8 @@ export const UI_MESSAGES: Record<SupportedLanguage, UIMessages> = {
     // Loading states
     loadingConfiguration: 'Cargando configuración...',
     loadingSession: 'Cargando sesión...',
+    systemReady: '¡Sistema listo para usar!',
+    processing: 'Procesando...',
     
     // Error messages
     unknownError: 'Error desconocido',
@@ -255,6 +261,8 @@ export const UI_MESSAGES: Record<SupportedLanguage, UIMessages> = {
     // Loading states
     loadingConfiguration: 'Caricamento configurazione...',
     loadingSession: 'Caricamento sessione...',
+    systemReady: 'Sistema pronto per l\'uso!',
+    processing: 'Elaborazione in corso...',
     
     // Error messages
     unknownError: 'Errore sconosciuto',
@@ -324,6 +332,8 @@ export const UI_MESSAGES: Record<SupportedLanguage, UIMessages> = {
     // Loading states
     loadingConfiguration: 'Chargement de la configuration...',
     loadingSession: 'Chargement de la session...',
+    systemReady: 'Système prêt à l\'utilisation !',
+    processing: 'Traitement en cours...',
     
     // Error messages
     unknownError: 'Erreur inconnue',
@@ -393,6 +403,8 @@ export const UI_MESSAGES: Record<SupportedLanguage, UIMessages> = {
     // Loading states
     loadingConfiguration: 'Lade Konfiguration...',
     loadingSession: 'Lade Sitzung...',
+    systemReady: 'System bereit für den Einsatz!',
+    processing: 'Verarbeitung läuft...',
     
     // Error messages
     unknownError: 'Unbekannter Fehler',
@@ -462,6 +474,8 @@ export const UI_MESSAGES: Record<SupportedLanguage, UIMessages> = {
     // Loading states
     loadingConfiguration: 'Carregando configuração...',
     loadingSession: 'Carregando sessão...',
+    systemReady: 'Sistema pronto para uso!',
+    processing: 'Processando...',
     
     // Error messages
     unknownError: 'Erro desconhecido',
